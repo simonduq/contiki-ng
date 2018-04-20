@@ -93,8 +93,8 @@
 #endif
 
 /* Truncate received drift correction information to maximum half
- * of the guard time (one fourth of TSCH_DEFAULT_TS_RX_WAIT) */
-#define SYNC_IE_BOUND ((int32_t)US_TO_RTIMERTICKS(TSCH_DEFAULT_TS_RX_WAIT / 4))
+ * of the guard time (one fourth of RxWait) */
+#define SYNC_IE_BOUND (tsch_timing[tsch_ts_rx_wait] / 4)
 
 /* By default: check that rtimer runs at >=32kHz and use a guard time of 10us */
 #if RTIMER_SECOND < (32 * 1024)

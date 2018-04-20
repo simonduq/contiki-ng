@@ -19,9 +19,9 @@
 
 /* The TSCH default slot length of 10ms is a bit too short for this platform,
  * use 15ms instead. */
-#ifndef TSCH_CONF_DEFAULT_TIMESLOT_LENGTH
-#define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 15000
-#endif /* TSCH_CONF_DEFAULT_TIMESLOT_LENGTH */
+#ifndef TSCH_CONF_DEFAULT_TIMING
+#define TSCH_CONF_DEFAULT_TIMING tsch_timing_15ms
+#endif /* TSCH_CONF_DEFAULT_TIMING */
 
 /* Save RAM through a smaller uIP buffer */
 #ifndef UIP_CONF_BUFFER_SIZE

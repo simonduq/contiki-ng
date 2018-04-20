@@ -101,21 +101,9 @@ NBR_TABLE(struct eb_stat, eb_stats);
 uint8_t tsch_hopping_sequence[TSCH_HOPPING_SEQUENCE_MAX_LEN];
 struct tsch_asn_divisor_t tsch_hopping_sequence_length;
 
-/* Default TSCH timeslot timing (in micro-second) */
-static const uint16_t tsch_default_timing_us[tsch_ts_elements_count] = {
-  TSCH_DEFAULT_TS_CCA_OFFSET,
-  TSCH_DEFAULT_TS_CCA,
-  TSCH_DEFAULT_TS_TX_OFFSET,
-  TSCH_DEFAULT_TS_RX_OFFSET,
-  TSCH_DEFAULT_TS_RX_ACK_DELAY,
-  TSCH_DEFAULT_TS_TX_ACK_DELAY,
-  TSCH_DEFAULT_TS_RX_WAIT,
-  TSCH_DEFAULT_TS_ACK_WAIT,
-  TSCH_DEFAULT_TS_RX_TX,
-  TSCH_DEFAULT_TS_MAX_ACK,
-  TSCH_DEFAULT_TS_MAX_TX,
-  TSCH_DEFAULT_TS_TIMESLOT_LENGTH,
-};
+/* TSCH timeslot timing (in micro-second) */
+uint16_t tsch_timing_us[tsch_ts_elements_count];
+
 /* TSCH timeslot timing (in rtimer ticks) */
 rtimer_clock_t tsch_timing[tsch_ts_elements_count];
 
@@ -230,7 +218,8 @@ tsch_reset(void)
   current_link = NULL;
   /* Reset timeslot timing to defaults */
   for(i = 0; i < tsch_ts_elements_count; i++) {
-    tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
+    tsch_timing_us[i] = TSCH_DEFAULT_TIMING[i];
+    tsch_timing[i] = US_TO_RTIMERTICKS(TSCH_DEFAULT_TIMING[i]);
   }
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK
   TSCH_CALLBACK_LEAVING_NETWORK();
@@ -563,8 +552,10 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
   /* TSCH timeslot timing */
   for(i = 0; i < tsch_ts_elements_count; i++) {
     if(ies.ie_tsch_timeslot_id == 0) {
-      tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
+      tsch_timing_us[i] = TSCH_DEFAULT_TIMING[i];
+      tsch_timing[i] = US_TO_RTIMERTICKS(TSCH_DEFAULT_TIMING[i]);
     } else {
+      tsch_timing_us[i] = ies.ie_tsch_timeslot[i];
       tsch_timing[i] = US_TO_RTIMERTICKS(ies.ie_tsch_timeslot[i]);
     }
   }

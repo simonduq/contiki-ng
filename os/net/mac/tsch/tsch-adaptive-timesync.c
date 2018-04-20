@@ -61,6 +61,9 @@ static uint32_t asn_since_last_learning;
 /* Units in which drift is stored: ppm * 256 */
 #define TSCH_DRIFT_UNIT (1000L * 1000 * 256)
 
+/* The approximate number of slots per second */
+#define TSCH_SLOTS_PER_SECOND (1000000 / tsch_timing_us[tsch_ts_timeslot_length])
+
 /*---------------------------------------------------------------------------*/
 long int
 tsch_adaptive_timesync_get_drift_ppm(void)
