@@ -266,7 +266,7 @@ keepalive_packet_sent(void *ptr, int status, int transmissions)
       LOG_WARN("re-synchronizing on ");
       LOG_WARN_LLADDR(&last_eb_nbr_addr);
       LOG_WARN_("\n");
-      /* We simply pick the last neighbor we receiver sync information from */
+      /* We simply pick the last neighbor we received sync information from */
       tsch_queue_update_time_source(&last_eb_nbr_addr);
       tsch_join_priority = last_eb_nbr_jp + 1;
       /* Try to get in sync ASAP */
