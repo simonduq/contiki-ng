@@ -43,9 +43,6 @@
 
 #include "sys/rtimer.h"
 
-#ifdef RTIMER_CONF_SECOND
-# define RTIMER_ARCH_SECOND RTIMER_CONF_SECOND
-#else
 #if RTIMER_USE_32KHZ
 # if JN516X_EXTERNAL_CRYSTAL_OSCILLATOR
 #  define RTIMER_ARCH_SECOND 32768
@@ -55,7 +52,6 @@
 #else
 /* 32MHz CPU clock => 16MHz timer */
 # define RTIMER_ARCH_SECOND (F_CPU / 2)
-#endif
 #endif
 
 #if RTIMER_USE_32KHZ
