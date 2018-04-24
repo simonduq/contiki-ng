@@ -4,10 +4,18 @@ MODULES += os/services/shell
 MAKE_MAC = MAKE_MAC_OTHER
 MAKE_NET = MAKE_NET_IPV6
 
+ifdef PORT
+  PORTARGS = -s $(PORT)
+else ifeq ($(HOST_OS),Darwin)
+  PORT = ${firstword ${wildcard /dev/tty.usbserial-* /dev/tty.usbmodem* /dev/tty.SLAB_USB*}}
+  ifneq ($(PORT),)
+    PORTARGS = -s $(PORT)
+  endif
+endif
 
 PREFIX ?= fd00::1/64
 connect-router:	border-router.native
-	sudo ./border-router.native $(PREFIX)
+	sudo ./border-router.native $(PORTARGS) $(PREFIX)
 
 connect-router-cooja:	border-router.native
-	sudo ./border-router.native -a localhost $(PREFIX)
+	sudo ./border-router.native $(PORTARGS) -a localhost $(PREFIX)
