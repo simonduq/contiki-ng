@@ -50,7 +50,7 @@ read_value(int32_t *value)
     last_value = 35000;
   }
   *value = last_value;
-  return 0;
+  return 1;
 }
 /*---------------------------------------------------------------------------*/
 const struct ipso_objects_sensor example_ipso_temperature = {
