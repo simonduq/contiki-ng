@@ -51,6 +51,8 @@
 #include "net/ipv6/uiplib.h"
 #include "net/ipv6/uip-icmp6.h"
 #include "net/ipv6/uip-ds6.h"
+#include "net/app-layer/coap/coap.h"
+#include "net/app-layer/coap/coap-callback-api.h"
 #if MAC_CONF_WITH_TSCH
 #include "net/mac/tsch/tsch.h"
 #endif /* MAC_CONF_WITH_TSCH */
@@ -241,6 +243,96 @@ PT_THREAD(cmd_ping(struct pt *pt, shell_output_func output, char *args))
     shell_output_6addr(output, &remote_addr);
     SHELL_OUTPUT(output, ", len %u, ttl %u, delay %lu ms\n",
       curr_ping_datalen, curr_ping_ttl, (1000*(clock_time() - timeout_timer.timer.start))/CLOCK_SECOND);
+  }
+
+  PT_END(pt);
+}
+/*---------------------------------------------------------------------------*/
+static void
+coap_req_callback(coap_request_state_t *state)
+{
+  if(state->response) {
+    const uint8_t *chunk;
+    int len = coap_get_payload(state->response, &chunk);
+    SHELL_OUTPUT(curr_ping_output_func, "CoAP: code:%d payload:'%.*s'\n",
+                 state->response->code, len, (char *)chunk);
+  } else {
+    /* SHELL_OUTPUT(curr_ping_output_func, "CoAP done.\n"); */
+    if(curr_ping_output_func != NULL) {
+      curr_ping_output_func = NULL;
+      process_poll(curr_ping_process);
+    }
+  }
+}
+/*---------------------------------------------------------------------------*/
+static
+PT_THREAD(cmd_coap(struct pt *pt, shell_output_func output, char *args))
+{
+  static struct etimer timeout_timer;
+  static coap_endpoint_t server_ep;
+  char *next_args;
+  int op;
+  static char *path;
+  static coap_message_t request;
+  static coap_request_state_t request_state;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+  /* Get arguments <OP> EP:coap://[host]:port path */
+
+  SHELL_ARGS_NEXT(args, next_args);
+  if(args == NULL) {
+    SHELL_OUTPUT(output, "No OP specified - get / post / put\n");
+    PT_EXIT(pt);
+  } else if(strcmp("get", args) == 0) {
+    op = COAP_GET;
+  } else {
+    SHELL_OUTPUT(output, "OP not supported: %s\n", args);
+    PT_EXIT(pt);
+  }
+
+  SHELL_ARGS_NEXT(args, next_args);
+  if(args == NULL) {
+    SHELL_OUTPUT(output, "No CoAP host specified\n");
+    PT_EXIT(pt);
+  } else if(coap_endpoint_parse(args, strlen(args), &server_ep)) {
+    /* ok - all ok! */
+  } else {
+    SHELL_OUTPUT(output, "Could not parse CoAP host:%s\n", args);
+    PT_EXIT(pt);
+  }
+
+  SHELL_ARGS_NEXT(args, next_args);
+  if(args == NULL) {
+    SHELL_OUTPUT(output, "No CoAP path specified - using / \n");
+    path = "/";
+  } else {
+    path = args;
+  }
+
+  SHELL_OUTPUT(output, "Performing CoAP request to ");
+  shell_output_6addr(output, &server_ep.ipaddr);
+  SHELL_OUTPUT(output, "\n");
+
+  etimer_set(&timeout_timer, PING_TIMEOUT);
+
+  coap_init_message(&request, COAP_TYPE_CON, op, 0);
+  coap_set_header_uri_path(&request, path);
+
+  /* Send CoAP request - reuse ping variables */
+  curr_ping_process = PROCESS_CURRENT();
+  curr_ping_output_func = output;
+
+  coap_send_request(&request_state, &server_ep, &request, coap_req_callback);
+  SHELL_OUTPUT(output, "CoAP request sent\n");
+
+  PT_WAIT_UNTIL(pt, curr_ping_output_func == NULL || etimer_expired(&timeout_timer));
+  if(curr_ping_output_func != NULL) {
+    SHELL_OUTPUT(output, "CoAP Timeout\n");
+    curr_ping_output_func = NULL;
+  } else {
+    SHELL_OUTPUT(output, "CoAP request done.\n");
   }
 
   PT_END(pt);
@@ -720,6 +812,11 @@ shell_commands_init(void)
   /* Set up Ping Reply callback */
   uip_icmp6_echo_reply_callback_add(&echo_reply_notification,
                                     echo_reply_handler);
+
+  /* Initialize CoAP engine. Contiki-NG already does that from the main,
+   * but for standalone use of lwm2m, this is required here. coap_engine_init()
+   * checks for double-initialization and can be called twice safely. */
+  coap_engine_init();
 }
 /*---------------------------------------------------------------------------*/
 struct shell_command_t shell_commands[] = {
@@ -729,6 +826,7 @@ struct shell_command_t shell_commands[] = {
   { "ip-nbr",               cmd_ip_neighbors,         "'> ip-nbr': Shows all IPv6 neighbors" },
   { "log",                  cmd_log,                  "'> log module level': Sets log level (0--4) for a given module (or \"all\"). For module \"mac\", level 4 also enables per-slot logging." },
   { "ping",                 cmd_ping,                 "'> ping addr': Pings the IPv6 address 'addr'" },
+  { "coap",                 cmd_coap,                 "'> coap op coap-host path': perform CoAP request to host/path (host format: coap://[ipv6]:port )" },
 #if UIP_CONF_IPV6_RPL
   { "rpl-set-root",         cmd_rpl_set_root,         "'> rpl-set-root 0/1 [prefix]': Sets node as root (1) or not (0). A /64 prefix can be optionally specified." },
   { "rpl-local-repair",     cmd_rpl_local_repair,     "'> rpl-local-repair': Triggers a RPL local repair" },
