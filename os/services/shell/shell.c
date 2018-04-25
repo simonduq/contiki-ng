@@ -123,6 +123,11 @@ PT_THREAD(shell_input(struct pt *pt, shell_output_func output, const char *cmd))
     cmd++;
   }
 
+  if(*cmd == '\0') {
+    /* empty line */
+    goto done;
+  }
+
   /* Look for arguments */
   args = strchr(cmd, ' ');
   if(args != NULL) {
