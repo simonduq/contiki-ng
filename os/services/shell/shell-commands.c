@@ -384,7 +384,31 @@ PT_THREAD(cmd_log(struct pt *pt, shell_output_func output, char *args))
   if(args == NULL) {
     level = -1;
   } else {
-    level = (int)strtol(args, &ptr, 10);
+    switch(*args) {
+    case 'n':
+    case 'N':
+      level = LOG_LEVEL_NONE;
+      break;
+    case 'e':
+    case 'E':
+      level = LOG_LEVEL_ERR;
+      break;
+    case 'w':
+    case 'W':
+      level = LOG_LEVEL_WARN;
+      break;
+    case 'i':
+    case 'I':
+      level = LOG_LEVEL_INFO;
+      break;
+    case 'd':
+    case 'D':
+      level = LOG_LEVEL_DBG;
+      break;
+    default:
+      level = (int)strtol(args, &ptr, 10);
+      break;
+    }
   }
   if((level == 0 && args == ptr)
     || level < LOG_LEVEL_NONE || level > LOG_LEVEL_DBG) {
