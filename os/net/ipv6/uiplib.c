@@ -57,22 +57,31 @@
 int
 uiplib_ip6addrconv(const char *addrstr, uip_ip6addr_t *ipaddr)
 {
+  const char *last;
   uint16_t value;
-  int tmp, zero;
+  int tmp, zero, vcount, fcount;
   unsigned int len;
-  char c = 0;  //gcc warning if not initialized
+  char c = 0;  /* gcc warning if not initialized */
 
   value = 0;
+  vcount = 0;
   zero = -1;
-  if(*addrstr == '[') addrstr++;
+  last = NULL;
+  if(*addrstr == '[') {
+    addrstr++;
+  }
 
   for(len = 0; len < sizeof(uip_ip6addr_t) - 1; addrstr++) {
     c = *addrstr;
+    if(c == '.') {
+      break;
+    }
     if(c == ':' || c == '\0' || c == ']' || c == '/') {
       ipaddr->u8[len] = (value >> 8) & 0xff;
       ipaddr->u8[len + 1] = value & 0xff;
       len += 2;
       value = 0;
+      vcount = 0;
 
       if(c == '\0' || c == ']' || c == '/') {
         break;
@@ -85,7 +94,12 @@ uiplib_ip6addrconv(const char *addrstr, uip_ip6addr_t *ipaddr)
         }
         addrstr++;
       }
+      last = addrstr;
     } else {
+      if(++vcount > 4) {
+        LOG_ERR("too large field\n");
+        return 0;
+      }
       if(c >= '0' && c <= '9') {
         tmp = c - '0';
       } else if(c >= 'a' && c <= 'f') {
@@ -99,10 +113,53 @@ uiplib_ip6addrconv(const char *addrstr, uip_ip6addr_t *ipaddr)
       value = (value << 4) + (tmp & 0xf);
     }
   }
+
+  if(c == '.') {
+    if(last == NULL) {
+      LOG_ERR("too short address\n");
+      return 0;
+    }
+    if(sizeof(uip_ip6addr_t) - len < 4) {
+      LOG_ERR("too short address\n");
+      return 0;
+    }
+    addrstr = last + 1;
+    value = 0;
+    vcount = 0;
+    for(fcount = 0; fcount < 4; addrstr++) {
+      c = *addrstr;
+      if(c >= '0' && c <= '9') {
+        if(++vcount > 3) {
+          LOG_ERR("too large field\n");
+          return 0;
+        }
+        value = value * 10 + ((c - '0') & 0xf);
+      } else {
+        if(vcount == 0) {
+          LOG_ERR("too short address\n");
+          return 0;
+        }
+        ipaddr->u8[len++] = value & 0xff;
+        fcount++;
+        value = 0;
+        vcount = 0;
+
+        if(c != '.') {
+          break;
+        }
+      }
+    }
+    if(fcount != 4) {
+      LOG_ERR("too short address\n");
+      return 0;
+    }
+  }
+
   if(c != '\0' && c != ']' && c != '/') {
     LOG_ERR("too large address\n");
     return 0;
   }
+
   if(len < sizeof(uip_ip6addr_t)) {
     if(zero < 0) {
       LOG_ERR("too short address\n");
@@ -117,7 +174,7 @@ uiplib_ip6addrconv(const char *addrstr, uip_ip6addr_t *ipaddr)
 }
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 /*---------------------------------------------------------------------------*/
-/* Parse a IPv4-address from a string. Returns the number of characters read 
+/* Parse a IPv4-address from a string. Returns the number of characters read
  * for the address. */
 int
 uiplib_ip4addrconv(const char *addrstr, uip_ip4addr_t *ipaddr)
