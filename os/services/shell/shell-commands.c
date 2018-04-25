@@ -51,8 +51,10 @@
 #include "net/ipv6/uiplib.h"
 #include "net/ipv6/uip-icmp6.h"
 #include "net/ipv6/uip-ds6.h"
+#if BUILD_WITH_COAP
 #include "net/app-layer/coap/coap.h"
 #include "net/app-layer/coap/coap-callback-api.h"
+#endif /* BUILD_WITH_COAP */
 #if MAC_CONF_WITH_TSCH
 #include "net/mac/tsch/tsch.h"
 #endif /* MAC_CONF_WITH_TSCH */
@@ -272,6 +274,7 @@ PT_THREAD(cmd_ping(struct pt *pt, shell_output_func output, char *args))
 
   PT_END(pt);
 }
+#if BUILD_WITH_COAP
 /*---------------------------------------------------------------------------*/
 static void
 coap_req_callback(coap_request_state_t *state)
@@ -279,7 +282,7 @@ coap_req_callback(coap_request_state_t *state)
   if(state->response) {
     const uint8_t *chunk;
     int len = coap_get_payload(state->response, &chunk);
-    SHELL_OUTPUT(curr_ping_output_func, "CoAP: code:%d payload:'%.*s'\n",
+    SHELL_OUTPUT(curr_ping_output_func, "CoAP response code: %d, payload: '%.*s'\n",
                  state->response->code, len, (char *)chunk);
   } else {
     /* SHELL_OUTPUT(curr_ping_output_func, "CoAP done.\n"); */
@@ -362,6 +365,7 @@ PT_THREAD(cmd_coap(struct pt *pt, shell_output_func output, char *args))
 
   PT_END(pt);
 }
+#endif /* BUILD_WITH_COAP */
 /*---------------------------------------------------------------------------*/
 static void
 shell_output_log_levels(shell_output_func output)
@@ -824,11 +828,6 @@ shell_commands_init(void)
   /* Set up Ping Reply callback */
   uip_icmp6_echo_reply_callback_add(&echo_reply_notification,
                                     echo_reply_handler);
-
-  /* Initialize CoAP engine. Contiki-NG already does that from the main,
-   * but for standalone use of lwm2m, this is required here. coap_engine_init()
-   * checks for double-initialization and can be called twice safely. */
-  coap_engine_init();
 }
 /*---------------------------------------------------------------------------*/
 struct shell_command_t shell_commands[] = {
@@ -838,7 +837,9 @@ struct shell_command_t shell_commands[] = {
   { "ip-nbr",               cmd_ip_neighbors,         "'> ip-nbr': Shows all IPv6 neighbors" },
   { "log",                  cmd_log,                  "'> log module level': Sets log level (0--4) for a given module (or \"all\"). For module \"mac\", level 4 also enables per-slot logging." },
   { "ping",                 cmd_ping,                 "'> ping addr': Pings the IPv6 address 'addr'" },
+#if BUILD_WITH_COAP
   { "coap",                 cmd_coap,                 "'> coap op coap-host path': perform CoAP request to host/path (host format: coap://[ipv6]:port )" },
+#endif /* BUILD_WITH_COAP */
 #if UIP_CONF_IPV6_RPL
   { "rpl-set-root",         cmd_rpl_set_root,         "'> rpl-set-root 0/1 [prefix]': Sets node as root (1) or not (0). A /64 prefix can be optionally specified." },
   { "rpl-local-repair",     cmd_rpl_local_repair,     "'> rpl-local-repair': Triggers a RPL local repair" },
