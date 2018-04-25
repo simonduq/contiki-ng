@@ -49,6 +49,7 @@
 #include "contiki.h"
 #include "net/ipv6/uip-udp-packet.h"
 #include "net/ipv6/uiplib.h"
+#include "net/routing/routing.h"
 #include "coap.h"
 #include "coap-engine.h"
 #include "coap-endpoint.h"
@@ -263,13 +264,10 @@ coap_endpoint_is_secure(const coap_endpoint_t *ep)
 int
 coap_endpoint_is_connected(const coap_endpoint_t *ep)
 {
-#if UIP_CONF_IPV6_RPL
-#ifndef CONTIKI_TARGET_NATIVE
-  if(rpl_get_any_dag() == NULL) {
+  if(!uip_is_addr_linklocal(&ep->ipaddr)
+    && NETSTACK_ROUTING.node_is_reachable() == 0) {
     return 0;
   }
-#endif
-#endif /* UIP_CONF_IPV6_RPL */
 
 #ifdef WITH_DTLS
   if(ep != NULL && ep->secure != 0) {
