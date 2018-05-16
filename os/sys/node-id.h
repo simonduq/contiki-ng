@@ -30,14 +30,14 @@
  *
  */
 
- /**
-  * \addtogroup node-id
-  * @{
-  *
-  * \file Node-id (simple 16-bit identifiers) handling
-  * \author Simon Duquennoy <simon.duquennoy@ri.se>
-  *
-  */
+/**
+* \addtogroup node-id
+* @{
+*
+* \file Node-id (simple 16-bit identifiers) handling
+* \author Simon Duquennoy <simon.duquennoy@ri.se>
+*
+*/
 
 #ifndef NODE_ID_H_
 #define NODE_ID_H_

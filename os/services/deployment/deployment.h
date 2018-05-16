@@ -43,6 +43,32 @@
 #include "net/linkaddr.h"
 
 /**
+ * ID<->MAC address mapping structure
+ */
+struct id_mac {
+  uint16_t id;
+  linkaddr_t mac;
+};
+
+/**
+ * A table of struct id_mac that provides ID-MAC mapping for a deployment.
+ * Example with four nodes:
+ * In configuration file:
+ *  #define DEPLOYMENT_MAPPING custom_array
+ * In a .c file:
+ *  const struct id_mac custom_array[] = {
+      { 1, {{0x00,0x12,0x4b,0x00,0x06,0x0d,0xb6,0x14}}},
+      { 2, {{0x00,0x12,0x4b,0x00,0x06,0x0d,0xb1,0xe7}}},
+      { 3, {{0x00,0x12,0x4b,0x00,0x06,0x0d,0xb4,0x35}}},
+      { 4, {{0x00,0x12,0x4b,0x00,0x06,0x0d,0xb1,0xcf}}},
+      { 0, {{0}}}
+    };
+ */
+#ifndef DEPLOYMENT_MAPPING
+#error DEPLOYMENT_MAPPING not defined
+#endif /* DEPLOYMENT_MAPPING */
+
+/**
  * Initializes the deployment module
  */
 void deployment_init(void);

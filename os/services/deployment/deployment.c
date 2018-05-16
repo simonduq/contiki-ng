@@ -102,10 +102,10 @@ get_node_id(void)
 uint16_t
 nodeid_from_linkaddr(const linkaddr_t *lladdr)
 {
+  const struct id_mac *curr = DEPLOYMENT_MAPPING;
   if(lladdr == NULL) {
     return 0;
   }
-  const struct id_mac *curr = id_mac_list;
   while(curr->id != 0) {
     /* Assume network-wide unique 16-bit MAC addresses */
     if(linkaddr_cmp(lladdr, &curr->mac)) {
@@ -119,10 +119,10 @@ nodeid_from_linkaddr(const linkaddr_t *lladdr)
 void
 linkaddr_from_nodeid(linkaddr_t *lladdr, uint16_t id)
 {
+  const struct id_mac *curr = DEPLOYMENT_MAPPING;
   if(id == 0 || lladdr == NULL) {
     return;
   }
-  const struct id_mac *curr = id_mac_list;
   while(curr->id != 0) {
     if(curr->id == id) {
       linkaddr_copy(lladdr, &curr->mac);
