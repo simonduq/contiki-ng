@@ -44,9 +44,11 @@
 
 /********** Includes **********/
 
+#include "net/mac/tsch/tsch-const.h"
 #include "net/mac/tsch/tsch-asn.h"
 #include "lib/list.h"
 #include "lib/ringbufindex.h"
+#include "cc1200-rf-cfg.h"
 
 /********** Data types **********/
 
@@ -89,6 +91,8 @@ struct tsch_slotframe {
   /* Number of timeslots in the slotframe.
    * Stored as struct asn_divisor_t because we often need ASN%size */
   struct tsch_asn_divisor_t size;
+  /* The timeslot timing for slots in this slotframe */
+  rtimer_clock_t *tsch_timing;
   /* List of links belonging to this slotframe */
   LIST_STRUCT(links_list);
 };

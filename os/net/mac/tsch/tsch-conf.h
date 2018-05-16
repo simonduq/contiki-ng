@@ -151,7 +151,7 @@
 #ifdef TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN
 #define TSCH_HOPPING_SEQUENCE_MAX_LEN TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN
 #else
-#define TSCH_HOPPING_SEQUENCE_MAX_LEN 16
+#define TSCH_HOPPING_SEQUENCE_MAX_LEN sizeof(TSCH_DEFAULT_HOPPING_SEQUENCE)
 #endif
 
 /******** Configuration: association *******/
@@ -414,8 +414,6 @@ by default, useful in case of duplicate seqno */
 #else
 #define TSCH_RADIO_ON_DURING_TIMESLOT 0
 #endif
-
-
 
 /* Timeslot timing */
 #ifndef TSCH_CONF_DEFAULT_TIMESLOT_LENGTH

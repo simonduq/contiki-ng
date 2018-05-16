@@ -69,6 +69,9 @@ frequency hopping for enhanced reliability.
 #include "sys/cooja_mt.h"
 #endif /* CONTIKI_TARGET_COOJA */
 
+#include "dev/watchdog.h"
+#include "cc1200-rf-cfg.h"
+
 /*********** Macros *********/
 
 /* Wait for a condition with timeout t0+offset. */
@@ -80,7 +83,9 @@ frequency hopping for enhanced reliability.
   };
 #else
 #define BUSYWAIT_UNTIL_ABS(cond, t0, offset) \
-  while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), (t0) + (offset))) ;
+  while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), (t0) + (offset))) { \
+    watchdog_periodic(); \
+  };
 #endif /* CONTIKI_TARGET_COOJA */
 
 /*********** Callbacks *********/
@@ -170,11 +175,13 @@ extern uint8_t tsch_current_channel;
 extern uint8_t tsch_hopping_sequence[TSCH_HOPPING_SEQUENCE_MAX_LEN];
 extern struct tsch_asn_divisor_t tsch_hopping_sequence_length;
 /* TSCH timeslot timing (in rtimer ticks) */
-extern rtimer_clock_t tsch_timing[tsch_ts_elements_count];
+extern rtimer_clock_t *tsch_timing;
 /* Statistics on the current session */
 extern unsigned long tx_count;
 extern unsigned long rx_count;
 extern unsigned long sync_count;
+
+extern const cc1200_rf_cfg_t CC1200_CONF_RF_CFG;
 
 /* TSCH processes */
 PROCESS_NAME(tsch_process);

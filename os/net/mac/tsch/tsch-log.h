@@ -105,6 +105,7 @@ struct tsch_log_t {
       uint8_t sec_level;
       uint8_t drift_used;
       uint8_t seqno;
+      int16_t rssi;
     } rx;
   };
 };
