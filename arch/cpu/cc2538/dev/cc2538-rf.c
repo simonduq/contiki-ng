@@ -51,6 +51,10 @@
 
 #include <string.h>
 /*---------------------------------------------------------------------------*/
+
+#include "net/mac/tsch/tsch-asn.h"
+static struct tsch_asn_divisor_t tsch_hopping_sequence_divisor;
+
 #define CHECKSUM_LEN 2
 
 /* uDMA channel control persistent flags */
@@ -174,6 +178,9 @@ set_channel(uint8_t channel)
   uint8_t was_on = 0;
 
   PRINTF("RF: Set Channel\n");
+
+  channel %= (CC2538_RF_CHANNEL_MAX - CC2538_RF_CHANNEL_MIN + 1);
+  channel += CC2538_RF_CHANNEL_MIN;
 
   if((channel < CC2538_RF_CHANNEL_MIN) || (channel > CC2538_RF_CHANNEL_MAX)) {
     return CC2538_RF_CHANNEL_SET_ERROR;
@@ -475,6 +482,8 @@ init(void)
   if(rf_flags & RF_ON) {
     return 0;
   }
+
+  TSCH_ASN_DIVISOR_INIT(tsch_hopping_sequence_divisor, CC2538_RF_CHANNEL_MAX - CC2538_RF_CHANNEL_MIN + 1);
 
   /* Enable clock for the RF Core while Running, in Sleep and Deep Sleep */
   REG(SYS_CTRL_RCGCRFC) = 1;
@@ -862,6 +871,20 @@ get_value(radio_param_t param, radio_value_t *value)
   case RADIO_CONST_TXPOWER_MAX:
     *value = OUTPUT_POWER_MAX;
     return RADIO_RESULT_OK;
+  case RADIO_CONST_PHY_OVERHEAD:
+    *value = (radio_value_t)3; /* 1 len byte, 2 bytes CRC */
+  case RADIO_CONST_BYTE_AIR_TIME:
+    *value = (radio_value_t)16; /* 250kbps data rate. One byte = 32us.*/
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_DELAY_BEFORE_TX:
+    *value = (radio_value_t)CC2538_DELAY_BEFORE_TX;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_DELAY_BEFORE_RX:
+    *value = (radio_value_t)CC2538_DELAY_BEFORE_RX;
+    return RADIO_RESULT_OK;
+  case RADIO_CONST_DELAY_BEFORE_DETECT:
+    *value = (radio_value_t)CC2538_DELAY_BEFORE_DETECT;
+    return RADIO_RESULT_OK;
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -882,10 +905,10 @@ set_value(radio_param_t param, radio_value_t value)
     }
     return RADIO_RESULT_INVALID_VALUE;
   case RADIO_PARAM_CHANNEL:
-    if(value < CC2538_RF_CHANNEL_MIN ||
+    /*if(value < CC2538_RF_CHANNEL_MIN ||
        value > CC2538_RF_CHANNEL_MAX) {
       return RADIO_RESULT_INVALID_VALUE;
-    }
+    }*/
     if(set_channel(value) == CC2538_RF_CHANNEL_SET_ERROR) {
       return RADIO_RESULT_ERROR;
     }
@@ -953,6 +976,14 @@ get_object(radio_param_t param, void *dest, size_t size)
       return RADIO_RESULT_INVALID_VALUE;
     }
     *(rtimer_clock_t *)dest = get_sfd_timestamp();
+    return RADIO_RESULT_OK;
+  }
+
+  if(param == RADIO_CONST_TSCH_HOPPING_SEQUENCE_DIVISOR) {
+    if(size != sizeof(struct tsch_asn_divisor_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(struct tsch_asn_divisor_t*)dest = tsch_hopping_sequence_divisor;
     return RADIO_RESULT_OK;
   }
 

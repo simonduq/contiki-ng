@@ -236,8 +236,20 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
   /* Prepare Information Elements for inclusion in the EB */
   memset(&ies, 0, sizeof(ies));
 
+  p = packetbuf_dataptr();
+
+  ie_len = frame80215e_create_ie_tsch_synchronization(p,
+                                                      packetbuf_remaininglen(),
+                                                      &ies);
+  if(ie_len < 0) {
+    return -1;
+  }
+  p += ie_len;
+  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
+
   /* Add TSCH timeslot timing IE. */
-#if TSCH_PACKET_EB_WITH_TIMESLOT_TIMING
+#if TSCH_PACKET_EB_WITH_TIMESLOT_TIMING > TSCH_PACKET_IE_ELIDED
+#if TSCH_PACKET_EB_WITH_TIMESLOT_TIMING == TSCH_PACKET_IE_INLINE
   {
     int i;
     ies.ie_tsch_timeslot_id = 1;
@@ -245,20 +257,41 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
       ies.ie_tsch_timeslot[i] = RTIMERTICKS_TO_US(tsch_timing[i]);
     }
   }
-#endif /* TSCH_PACKET_EB_WITH_TIMESLOT_TIMING */
+#endif /* TSCH_PACKET_EB_WITH_TIMESLOT_TIMING == TSCH_PACKET_IE_INLINE */
+  ie_len = frame80215e_create_ie_tsch_timeslot(p,
+                                               packetbuf_remaininglen(),
+                                               &ies);
+  if(ie_len < 0) {
+    return -1;
+  }
+  p += ie_len;
+  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
+#endif /* TSCH_PACKET_EB_WITH_TIMESLOT_TIMING > TSCH_PACKET_IE_ELIDED */
+
 
   /* Add TSCH hopping sequence IE */
-#if TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE
+#if TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE > TSCH_PACKET_IE_ELIDED
+#if TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE == TSCH_PACKET_IE_INLINE
   if(tsch_hopping_sequence_length.val <= sizeof(ies.ie_hopping_sequence_list)) {
     ies.ie_channel_hopping_sequence_id = 1;
     ies.ie_hopping_sequence_len = tsch_hopping_sequence_length.val;
     memcpy(ies.ie_hopping_sequence_list, tsch_hopping_sequence,
            ies.ie_hopping_sequence_len);
   }
-#endif /* TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE */
+#endif /* TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE == TSCH_PACKET_IE_INLINE */
+  ie_len = frame80215e_create_ie_tsch_channel_hopping_sequence(p,
+                                                               packetbuf_remaininglen(),
+                                                               &ies);
+  if(ie_len < 0) {
+    return -1;
+  }
+  p += ie_len;
+  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
+#endif /* TSCH_PACKET_EB_WITH_HOPPING_SEQUENCE > TSCH_PACKET_IE_ELIDED */
 
   /* Add Slotframe and Link IE */
-#if TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK
+#if TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK > TSCH_PACKET_IE_ELIDED
+#if TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK == TSCH_PACKET_IE_INLINE
   {
     /* Send slotframe 0 with link at timeslot 0 */
     struct tsch_slotframe *sf0 = tsch_schedule_get_slotframe_by_handle(0);
@@ -275,37 +308,7 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
         link0->link_options;
     }
   }
-#endif /* TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK */
-
-  p = packetbuf_dataptr();
-
-  ie_len = frame80215e_create_ie_tsch_synchronization(p,
-                                                      packetbuf_remaininglen(),
-                                                      &ies);
-  if(ie_len < 0) {
-    return -1;
-  }
-  p += ie_len;
-  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
-
-  ie_len = frame80215e_create_ie_tsch_timeslot(p,
-                                               packetbuf_remaininglen(),
-                                               &ies);
-  if(ie_len < 0) {
-    return -1;
-  }
-  p += ie_len;
-  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
-
-  ie_len = frame80215e_create_ie_tsch_channel_hopping_sequence(p,
-                                                               packetbuf_remaininglen(),
-                                                               &ies);
-  if(ie_len < 0) {
-    return -1;
-  }
-  p += ie_len;
-  packetbuf_set_datalen(packetbuf_datalen() + ie_len);
-
+#endif /* TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK == TSCH_PACKET_IE_INLINE */
   ie_len = frame80215e_create_ie_tsch_slotframe_and_link(p,
                                                          packetbuf_remaininglen(),
                                                          &ies);
@@ -314,8 +317,9 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
   }
   p += ie_len;
   packetbuf_set_datalen(packetbuf_datalen() + ie_len);
+#endif /* TSCH_PACKET_EB_WITH_SLOTFRAME_AND_LINK > TSCH_PACKET_IE_ELIDED */
 
-#if 0
+#if TSCH_PACKET_EB_WITH_PAYLOAD_IE_LIST_TERMINATION > TSCH_PACKET_IE_ELIDED
   /* Payload IE list termination: optional */
   ie_len = frame80215e_create_ie_payload_list_termination(p,
                                                           packetbuf_remaininglen(),
@@ -325,7 +329,7 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
   }
   p += ie_len;
   packetbuf_set_datalen(packetbuf_datalen() + ie_len);
-#endif
+#endif /* TSCH_PACKET_EB_WITH_PAYLOAD_IE_LIST_TERMINATION > TSCH_PACKET_IE_ELIDED */
 
   ies.ie_mlme_len = packetbuf_datalen();
 
@@ -340,7 +344,8 @@ tsch_packet_create_eb(uint8_t *hdr_len, uint8_t *tsch_sync_ie_offset)
     return -1;
   }
 
-  /* allocate space for Header Termination IE, the size of which is 2 octets */
+  /* allocate space for Header Termination IE (transition from header IEs to
+   * payload IEs), the size of which is 2 octets */
   packetbuf_hdralloc(2);
   ie_len = frame80215e_create_ie_header_list_termination_1(packetbuf_hdrptr(),
                                                            packetbuf_remaininglen(),

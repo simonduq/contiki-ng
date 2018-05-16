@@ -43,6 +43,7 @@
 /********** Includes **********/
 
 #include "contiki.h"
+#include "net/mac/tsch/tsch-types.h"
 #include "net/linkaddr.h"
 
 /********** Functions *********/

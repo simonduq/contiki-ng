@@ -36,6 +36,7 @@
 #define CC1200_ARCH_H
 
 #include <stdint.h>
+
 /*---------------------------------------------------------------------------*/
 /*
  * Initialize SPI module & Pins.

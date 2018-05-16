@@ -248,9 +248,27 @@ tsch_release_lock(void)
 uint8_t
 tsch_calculate_channel(struct tsch_asn_t *asn, uint8_t channel_offset)
 {
-  uint16_t index_of_0 = TSCH_ASN_MOD(*asn, tsch_hopping_sequence_length);
-  uint16_t index_of_offset = (index_of_0 + channel_offset) % tsch_hopping_sequence_length.val;
+#if TSCH_CONF_NO_HOPPING_SEQUENCE
+  return asn->ls4b + channel_offset;
+#else
+  struct tsch_asn_divisor_t radio_divisor;
+  struct tsch_asn_divisor_t *divisor;
+  uint16_t index_of_0;
+  uint16_t index_of_offset;
+
+  /* Use full hopping sequence unless the radio specifies a shorter seqlen */
+  divisor = &tsch_hopping_sequence_length;
+  if(NETSTACK_RADIO.get_object(RADIO_CONST_TSCH_HOPPING_SEQUENCE_DIVISOR, &radio_divisor, sizeof(struct tsch_asn_divisor_t *)) == RADIO_RESULT_OK) {
+    /* Select shorter one */
+    if(radio_divisor.val < tsch_hopping_sequence_length.val) {
+      divisor = &radio_divisor;
+    }
+  }
+
+  index_of_0 = TSCH_ASN_MOD(*asn, *divisor);
+  index_of_offset = (index_of_0 + channel_offset) % divisor->val;
   return tsch_hopping_sequence[index_of_offset];
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -506,7 +524,6 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
       /* prepare packet to send: copy to radio buffer */
       if(packet_ready && NETSTACK_RADIO.prepare(packet, packet_len) == 0) { /* 0 means success */
         static rtimer_clock_t tx_duration;
-
 #if CCA_ENABLED
         cca_status = 1;
         /* delay before CCA */
@@ -585,7 +602,12 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               is_time_source = 0;
               /* The radio driver should return 0 if no valid packets are in the rx buffer */
               if(ack_len > 0) {
+#if TSCH_CONF_SYNC_WITH_LOWER_NODE_ID
+                int nbr_id = nodeid_from_linkaddr(queuebuf_addr(current_packet->qb, PACKETBUF_ADDR_RECEIVER));
+                is_time_source = nbr_id > 0 && nbr_id < node_id;
+#else
                 is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
+#endif
                 if(tsch_packet_parse_eack(ackbuf, ack_len, seqno,
                     &frame, &ack_ies, &ack_hdrlen) == 0) {
                   ack_len = 0;
@@ -609,7 +631,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               }
 
               if(ack_len != 0) {
-                if(is_time_source) {
+                if(is_time_source && (current_link->link_options & LINK_OPTION_TIME_KEEPING)) {
                   int32_t eack_time_correction = US_TO_RTIMERTICKS(ack_ies.ie_time_correction);
                   int32_t since_last_timesync = TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn);
                   if(eack_time_correction > SYNC_IE_BOUND) {
@@ -789,6 +811,8 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 #endif
 
         packet_duration = TSCH_PACKET_DURATION(current_input->len);
+        /* limit packet_duration to its max value */
+        packet_duration = MIN(packet_duration, tsch_timing[tsch_ts_max_tx]);
 
         if(!frame_valid) {
           TSCH_LOG_ADD(tsch_log_message,
@@ -826,6 +850,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
           if(linkaddr_cmp(&destination_address, &linkaddr_node_addr)
              || linkaddr_cmp(&destination_address, &linkaddr_null)) {
             int do_nack = 0;
+            int is_time_source = 0;
             rx_count++;
             estimated_drift = RTIMER_CLOCK_DIFF(expected_rx_time, rx_start_time);
             tsch_stats_on_time_synchronization(estimated_drift);
@@ -881,7 +906,14 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
             /* If the sender is a time source, proceed to clock drift compensation */
             n = tsch_queue_get_nbr(&source_address);
-            if(n != NULL && n->is_time_source) {
+#if TSCH_CONF_SYNC_WITH_LOWER_NODE_ID
+            int nbr_id = nodeid_from_linkaddr(&source_address);
+            is_time_source = nbr_id > 0 && nbr_id < node_id;
+#else
+            is_time_source = n != NULL && n->is_time_source;
+#endif
+
+            if(is_time_source && (current_link->link_options & LINK_OPTION_TIME_KEEPING)) {
               int32_t since_last_timesync = TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn);
               /* Keep track of last sync time */
               last_sync_asn = tsch_current_asn;
@@ -911,9 +943,10 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
               log->rx.drift = drift_correction;
               log->rx.drift_used = is_drift_correction_used;
               log->rx.is_data = frame.fcf.frame_type == FRAME802154_DATAFRAME;
-              log->rx.sec_level = frame.aux_hdr.security_control.security_level;
+              log->rx.sec_level =  frame.aux_hdr.security_control.security_level;
               log->rx.estimated_drift = estimated_drift;
               log->rx.seqno = frame.seq;
+              log->rx.rssi = current_input->rssi;
             );
           }
 
@@ -978,7 +1011,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         current_link = backup_link;
         current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       }
-      is_active_slot = current_packet != NULL || (current_link->link_options & LINK_OPTION_RX);
+      is_active_slot = current_packet != NULL || (current_link->link_options & LINK_OPTION_RX)
+                        || current_link->link_options & LINK_OPTION_SAMPLE_RSSI;
       if(is_active_slot) {
         /* If we are in a burst, we stick to current channel instead of
          * doing channel hopping, as per IEEE 802.15.4-2015 */
@@ -989,12 +1023,32 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
           /* Hop channel */
           tsch_current_channel = tsch_calculate_channel(&tsch_current_asn, current_link->channel_offset);
         }
+
         NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, tsch_current_channel);
+
+        if(NETSTACK_RADIO.get_object(RADIO_CONST_TSCH_TIMING, &tsch_timing, sizeof(rtimer_clock_t *)) != RADIO_RESULT_OK) {
+          tsch_timing = TSCH_CONF_MULTIPHY_DEFAULT_TIMING;
+        }
+
         /* Turn the radio on already here if configured so; necessary for radios with slow startup */
         tsch_radio_on(TSCH_RADIO_CMD_ON_START_OF_TIMESLOT);
+
+
+        if(current_link->link_options & LINK_OPTION_SAMPLE_RSSI) {
+          radio_value_t rssi_value;
+          int16_t rssi;
+          NETSTACK_RADIO.get_value(RADIO_PARAM_RSSI, &rssi_value);
+          tsch_radio_off(TSCH_RADIO_CMD_ON_START_OF_TIMESLOT);
+          rssi = (int16_t)rssi_value;
+          TSCH_LOG_ADD(tsch_log_message,
+                snprintf(log->message, sizeof(log->message),
+                    "RSSI sample: %d", rssi);
+          );
+          (void)rssi;
+        }
         /* Decide whether it is a TX/RX/IDLE or OFF slot */
         /* Actual slot operation */
-        if(current_packet != NULL) {
+        else if(current_packet != NULL) {
           /* We have something to transmit, do the following:
            * 1. send
            * 2. update_backoff_state(current_neighbor)
@@ -1019,7 +1073,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
     /* Do we need to resynchronize? i.e., wait for EB again */
     if(!tsch_is_coordinator && (TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn) >
-        (100 * TSCH_CLOCK_TO_SLOTS(TSCH_DESYNC_THRESHOLD / 100, tsch_timing[tsch_ts_timeslot_length])))) {
+        (TSCH_CLOCK_TO_SLOTS(TSCH_DESYNC_THRESHOLD, TSCH_CONF_MULTIPHY_DEFAULT_TIMING[tsch_ts_timeslot_length])))) {
       TSCH_LOG_ADD(tsch_log_message,
             snprintf(log->message, sizeof(log->message),
                 "! leaving the network, last sync %u",
@@ -1068,7 +1122,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         /* Update ASN */
         TSCH_ASN_INC(tsch_current_asn, timeslot_diff);
         /* Time to next wake up */
-        time_to_next_active_slot = timeslot_diff * tsch_timing[tsch_ts_timeslot_length] + drift_correction;
+        time_to_next_active_slot = timeslot_diff * TSCH_CONF_MULTIPHY_DEFAULT_TIMING[tsch_ts_timeslot_length] + drift_correction;
         time_to_next_active_slot += tsch_timesync_adaptive_compensate(time_to_next_active_slot);
         drift_correction = 0;
         is_drift_correction_used = 0;
@@ -1106,7 +1160,7 @@ tsch_slot_operation_start(void)
     /* Update ASN */
     TSCH_ASN_INC(tsch_current_asn, timeslot_diff);
     /* Time to next wake up */
-    time_to_next_active_slot = timeslot_diff * tsch_timing[tsch_ts_timeslot_length];
+    time_to_next_active_slot = timeslot_diff * TSCH_CONF_MULTIPHY_DEFAULT_TIMING[tsch_ts_timeslot_length];
     /* Update current slot start */
     prev_slot_start = current_slot_start;
     current_slot_start += time_to_next_active_slot;

@@ -101,7 +101,7 @@ static void
 timesync_learn_drift_ticks(uint32_t time_delta_asn, int32_t drift_ticks)
 {
   /* should fit in a 32-bit integer */
-  int32_t time_delta_ticks = time_delta_asn * tsch_timing[tsch_ts_timeslot_length];
+  int32_t time_delta_ticks = time_delta_asn * TSCH_CONF_MULTIPHY_DEFAULT_TIMING[tsch_ts_timeslot_length];
   int32_t real_drift_ticks = drift_ticks + compensated_ticks;
   int32_t last_drift_ppm = (int32_t)(((int64_t)real_drift_ticks * TSCH_DRIFT_UNIT) / time_delta_ticks);
 
