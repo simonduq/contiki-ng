@@ -34,6 +34,7 @@
 
 #include "cc1200-rf-cfg.h"
 #include "cc1200-const.h"
+#include "net/mac/tsch/tsch.h"
 
 /*
  * This is a setup for the following configuration:
@@ -42,7 +43,7 @@
  * =========
  * Table 68f: Frequency band identifier 4 (863-870 MHz)
  * Table 68g: Modulation scheme identifier 0 (Filtered FSK)
- * Table 68h: Mode #1 (50kbps)
+ * Table 68h: Mode #1 (50kbps) (see table 134)
  */
 
 /* Base frequency in kHz */
@@ -52,7 +53,11 @@
 /* The minimum channel */
 #define RF_CFG_MIN_CHANNEL              0
 /* The maximum channel */
+#if TABLETOP_TEST
+#define RF_CFG_MAX_CHANNEL              1
+#else
 #define RF_CFG_MAX_CHANNEL              33
+#endif
 /* The maximum output power in dBm */
 #define RF_CFG_MAX_TXPOWER              CC1200_CONST_TX_POWER_MAX
 /* The carrier sense level used for CCA in dBm */
@@ -62,7 +67,52 @@
 /*---------------------------------------------------------------------------*/
 static const char rf_cfg_descriptor[] = "802.15.4g 863-870MHz MR-FSK mode #1";
 /*---------------------------------------------------------------------------*/
-/* 
+
+/* 1 byte time: 160 usec */
+#define CC1200_TSCH_PREAMBLE_LENGTH               800 /* 5 bytes */
+#define CC1200_TSCH_CONF_RX_WAIT                 2200
+#define CC1200_TSCH_CONF_RX_ACK_WAIT              400
+
+#define CC1200_TSCH_DEFAULT_TS_CCA_OFFSET        1800
+#define CC1200_TSCH_DEFAULT_TS_CCA                128
+
+#define CC1200_TSCH_DEFAULT_TS_TX_OFFSET         3800
+#define CC1200_TSCH_DEFAULT_TS_RX_OFFSET         (CC1200_TSCH_DEFAULT_TS_TX_OFFSET - CC1200_TSCH_PREAMBLE_LENGTH - (CC1200_TSCH_CONF_RX_WAIT / 2))
+#define CC1200_TSCH_DEFAULT_TS_RX_ACK_DELAY      (CC1200_TSCH_DEFAULT_TS_TX_ACK_DELAY - CC1200_TSCH_PREAMBLE_LENGTH - (CC1200_TSCH_CONF_RX_ACK_WAIT / 2))
+#define CC1200_TSCH_DEFAULT_TS_TX_ACK_DELAY      3000
+
+#define CC1200_TSCH_DEFAULT_TS_RX_WAIT           (CC1200_TSCH_PREAMBLE_LENGTH + CC1200_TSCH_CONF_RX_WAIT)
+#define CC1200_TSCH_DEFAULT_TS_ACK_WAIT          (CC1200_TSCH_PREAMBLE_LENGTH + CC1200_TSCH_CONF_RX_ACK_WAIT)
+#define CC1200_TSCH_DEFAULT_TS_RX_TX              192
+#define CC1200_TSCH_DEFAULT_TS_MAX_ACK           1760 /* 7+1+3 bytes at 50 kbps */
+#define CC1200_TSCH_DEFAULT_TS_MAX_TX           20800 /* 126+1+3 bytes at 50 kbps */
+
+#define CC1200_TSCH_DEFAULT_SLACK_TIME            400
+#define CC1200_TSCH_DEFAULT_TS_TIMESLOT_LENGTH  \
+                                                  ( CC1200_TSCH_DEFAULT_TS_TX_OFFSET \
+                                                  + CC1200_TSCH_DEFAULT_TS_MAX_TX \
+                                                  + CC1200_TSCH_DEFAULT_TS_TX_ACK_DELAY \
+                                                  + CC1200_TSCH_DEFAULT_TS_MAX_ACK \
+                                                  + CC1200_TSCH_DEFAULT_SLACK_TIME \
+                                                  )
+
+/* TSCH timeslot timing (in rtimer ticks) */
+static rtimer_clock_t cc1200_50kbps_tsch_timing[tsch_ts_elements_count] = {
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_CCA_OFFSET),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_CCA),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_TX_OFFSET),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_RX_OFFSET),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_RX_ACK_DELAY),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_TX_ACK_DELAY),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_RX_WAIT),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_ACK_WAIT),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_RX_TX),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_MAX_ACK),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_MAX_TX),
+  US_TO_RTIMERTICKS(CC1200_TSCH_DEFAULT_TS_TIMESLOT_LENGTH),
+};
+
+/*
  * Register settings exported from SmartRF Studio using the standard template
  * "trxEB RF Settings Performance Line".
  */
@@ -153,12 +203,16 @@ static const registerSetting_t preferredSettings[]=
 };
 /*---------------------------------------------------------------------------*/
 /* Global linkage: symbol name must be different in each exported file! */
-const cc1200_rf_cfg_t cc1200_802154g_863_870_fsk_50kbps = {
+const cc1200_rf_cfg_t cc1200_868_2gfsk_50kbps_802154g = {
   .cfg_descriptor = rf_cfg_descriptor,
   .register_settings = preferredSettings,
   .size_of_register_settings = sizeof(preferredSettings),
   .tx_pkt_lifetime = (RTIMER_SECOND / 20),
   .tx_rx_turnaround = (RTIMER_SECOND / 100),
+  /* Includes 3 Bytes preamble + 2 Bytes SFD, at 160usec per byte = 800 usec */
+  .delay_before_tx = ((unsigned)US_TO_RTIMERTICKS(800+1140)),
+  .delay_before_rx = (unsigned)US_TO_RTIMERTICKS(400),
+  .delay_before_detect = (int)-US_TO_RTIMERTICKS(320), /* Two bytes */
   .chan_center_freq0 = RF_CFG_CHAN_CENTER_F0,
   .chan_spacing = RF_CFG_CHAN_SPACING,
   .min_channel = RF_CFG_MIN_CHANNEL,
@@ -166,5 +220,7 @@ const cc1200_rf_cfg_t cc1200_802154g_863_870_fsk_50kbps = {
   .max_txpower = RF_CFG_MAX_TXPOWER,
   .cca_threshold = RF_CFG_CCA_THRESHOLD,
   .rssi_offset = RF_CFG_RSSI_OFFSET,
+  .bitrate = 50000,
+  .tsch_timing = cc1200_50kbps_tsch_timing,
 };
 /*---------------------------------------------------------------------------*/

@@ -82,6 +82,7 @@ tsch_log_process_pending(void)
       printf("[INFO: TSCH-LOG  ] {asn %02x.%08lx link-NULL} ", log->asn.ms1b, log->asn.ls4b);
     } else {
       struct tsch_slotframe *sf = tsch_schedule_get_slotframe_by_handle(log->link->slotframe_handle);
+
       printf("[INFO: TSCH-LOG  ] {asn %02x.%08lx link %2u %3u %3u %2u %2u ch %2u} ",
              log->asn.ms1b, log->asn.ls4b,
              log->link->slotframe_handle, sf ? sf->size.val : 0,
@@ -108,8 +109,8 @@ tsch_log_process_pending(void)
         log_lladdr_compact(&log->rx.src);
         printf("->");
         log_lladdr_compact(log->rx.is_unicast ? &linkaddr_node_addr : NULL);
-        printf(", len %3u, seq %3u",
-                log->rx.datalen, log->rx.seqno);
+        printf(", len %3u, seq %3u, rssi %3d",
+                log->rx.datalen, log->rx.seqno, log->rx.rssi);
         printf(", edr %3d", (int)log->rx.estimated_drift);
         if(log->rx.drift_used) {
           printf(", dr %3d\n", log->rx.drift);

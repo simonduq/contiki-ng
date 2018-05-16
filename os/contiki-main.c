@@ -48,6 +48,7 @@
 #include "sys/stack-check.h"
 #include "dev/watchdog.h"
 
+#include "services/deployment/deployment.h"
 #include "net/app-layer/coap/coap-engine.h"
 #include "services/rpl-border-router/rpl-border-router.h"
 #include "services/orchestra/orchestra.h"
@@ -122,6 +123,11 @@ main(void)
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 
   platform_init_stage_three();
+
+#if BUILD_WITH_DEPLOYMENT
+  deployment_init();
+  LOG_DBG("With Deployment\n");
+#endif
 
 #if BUILD_WITH_RPL_BORDER_ROUTER
   rpl_border_router_init();

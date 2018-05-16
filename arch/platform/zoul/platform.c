@@ -257,6 +257,41 @@ platform_idle()
   lpm_enter();
 }
 /*---------------------------------------------------------------------------*/
+unsigned
+radio_phy_overhead(void) {
+  radio_value_t ret;
+  NETSTACK_RADIO.get_value(RADIO_CONST_PHY_OVERHEAD, &ret);
+  return (unsigned)ret;
+}
+/*---------------------------------------------------------------------------*/
+unsigned
+radio_byte_air_time(void) {
+  radio_value_t ret;
+  NETSTACK_RADIO.get_value(RADIO_CONST_BYTE_AIR_TIME, &ret);
+  return (unsigned)ret;
+}
+/*---------------------------------------------------------------------------*/
+unsigned
+radio_delay_before_tx(void) {
+  radio_value_t ret;
+  NETSTACK_RADIO.get_value(RADIO_CONST_DELAY_BEFORE_TX, &ret);
+  return (unsigned)ret;
+}
+/*---------------------------------------------------------------------------*/
+unsigned
+radio_delay_before_rx(void) {
+  radio_value_t ret;
+  NETSTACK_RADIO.get_value(RADIO_CONST_DELAY_BEFORE_RX, &ret);
+  return (unsigned)ret;
+}
+/*---------------------------------------------------------------------------*/
+unsigned
+radio_delay_before_detect(void) {
+  radio_value_t ret;
+  NETSTACK_RADIO.get_value(RADIO_CONST_DELAY_BEFORE_DETECT, &ret);
+  return (unsigned)ret;
+}
+/*---------------------------------------------------------------------------*/
 /**
  * @}
  * @}
