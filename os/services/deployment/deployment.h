@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Swedish Institute of Computer Science.
+ * Copyright (c) 2018, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,15 @@
  * SUCH DAMAGE.
  *
  */
+
 /**
- * \file
- *         Header file for deployment.c
- *
- * \author Simon Duquennoy <simonduq@sics.se>
- */
+* \addtogroup deployment
+* @{
+*
+* \file Per-deployment MAC <-> nodeid mapping
+* \author Simon Duquennoy <simon.duquennoy@ri.se>
+*
+*/
 
 #ifndef DEPLOYMENT_H
 #define DEPLOYMENT_H
@@ -69,18 +72,25 @@ struct id_mac {
 #endif /* DEPLOYMENT_MAPPING */
 
 /**
- * Initializes the deployment module
+ * Initialize the deployment module
  */
 void deployment_init(void);
 
 /**
- * Gets the node's node-id
- * \return The node ID.
+ * Get node ID from a link-layer address, from the deployment mapping table
+ *
+ * \param lladdr The link-layer address to look up for
+ * \return Node ID from a corresponding link-layer address
  */
-uint16_t get_node_id(void);
-/* Returns a node-id from a node's link-layer address */
-uint16_t nodeid_from_linkaddr(const linkaddr_t *addr);
-/* Sets an linkaddr from a link-layer address */
-void linkaddr_from_nodeid(linkaddr_t *lladdr, uint16_t id);
+uint16_t deployment_id_from_addr(const linkaddr_t *lladdr);
 
+/**
+ * Get node link-layer address from a node ID, from the deployment mapping table
+ *
+ * \parem lladdr A pointer where to write the link-layer address
+ * \parem id The node ID to look up for
+ */
+void deployment_addr_from_id(linkaddr_t *lladdr, uint16_t id);
+
+/** @} */
 #endif /* DEPLOYMENT_H */
