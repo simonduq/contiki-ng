@@ -27,6 +27,12 @@
  * SUCH DAMAGE.
  *
  */
+
+/**
+* \addtogroup deployment
+* @{
+*/
+
 /**
  * \file
  *         Code managing id<->mac address<->IPv6 address mapping, and doing this
@@ -93,3 +99,5 @@ deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr)
   return deployment_id_from_lladdr(&lladdr);
 }
 /*---------------------------------------------------------------------------*/
+
+/** @} */

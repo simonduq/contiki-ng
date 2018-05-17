@@ -53,6 +53,7 @@
 #include "services/orchestra/orchestra.h"
 #include "services/shell/serial-shell.h"
 #include "services/deployment/deployment.h"
+#include "services/simple-energest/simple-energest.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -145,6 +146,10 @@ main(void)
 #if BUILD_WITH_DEPLOYMENT
   deployment_init();
 #endif /* BUILD_WITH_DEPLOYMENT */
+
+#if BUILD_WITH_SIMPLE_ENERGEST
+  simple_energest_init();
+#endif /* BUILD_WITH_SIMPLE_ENERGEST */
 
   autostart_start(autostart_processes);
 

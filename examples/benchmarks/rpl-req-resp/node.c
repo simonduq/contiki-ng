@@ -62,17 +62,6 @@ PROCESS_THREAD(app_process, ev, data)
   etimer_set(&timer, CLOCK_SECOND * 10);
 
   while(1) {
-    uip_ds6_addr_t *lladdr;
-
-    LOG_INFO("Node ID: %u\n", node_id);
-    LOG_INFO("Link-layer address: ");
-    LOG_INFO_LLADDR(&linkaddr_node_addr);
-    LOG_INFO_("\n");
-    lladdr = uip_ds6_get_link_local(-1);
-    LOG_INFO("Tentative link-local IPv6 address: ");
-    LOG_INFO_6ADDR(lladdr != NULL ? &lladdr->ipaddr : NULL);
-    LOG_INFO_("\n");
-
     /* Wait for the periodic timer to expire and then restart the timer. */
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
     etimer_reset(&timer);

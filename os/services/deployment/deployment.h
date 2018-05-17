@@ -37,8 +37,8 @@
 *
 */
 
-#ifndef DEPLOYMENT_H
-#define DEPLOYMENT_H
+#ifndef DEPLOYMENT_H_
+#define DEPLOYMENT_H_
 
 #include "contiki-conf.h"
 #include "sys/node-id.h"
@@ -100,5 +100,5 @@ void deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id);
  */
 uint16_t deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr);
 
+#endif /* DEPLOYMENT_H_ */
 /** @} */
-#endif /* DEPLOYMENT_H */
