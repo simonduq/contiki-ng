@@ -82,7 +82,7 @@ void deployment_init(void);
  * \param lladdr The link-layer address to look up for
  * \return Node ID from a corresponding link-layer address
  */
-uint16_t deployment_id_from_addr(const linkaddr_t *lladdr);
+uint16_t deployment_id_from_lladdr(const linkaddr_t *lladdr);
 
 /**
  * Get node link-layer address from a node ID, from the deployment mapping table
@@ -90,7 +90,15 @@ uint16_t deployment_id_from_addr(const linkaddr_t *lladdr);
  * \parem lladdr A pointer where to write the link-layer address
  * \parem id The node ID to look up for
  */
-void deployment_addr_from_id(linkaddr_t *lladdr, uint16_t id);
+void deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id);
+
+/**
+ * Get node ID from an IPv6 address, from the deployment mapping table
+ *
+ * \param ipaddr The IPv6 (global or link-local) address to look up for
+ * \return Node ID from a corresponding IPv6 address
+ */
+uint16_t deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr);
 
 /** @} */
 #endif /* DEPLOYMENT_H */

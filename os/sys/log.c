@@ -50,6 +50,7 @@
 
 #include "sys/log.h"
 #include "net/ipv6/ip64-addr.h"
+#include "deployment/deployment.h"
 
 int curr_log_level_rpl = LOG_CONF_LEVEL_RPL;
 int curr_log_level_tcpip = LOG_CONF_LEVEL_TCPIP;
@@ -120,12 +121,20 @@ log_6addr_compact(const uip_ipaddr_t *ipaddr)
 {
   if(ipaddr == NULL) {
     LOG_OUTPUT("6A-NULL");
-  } else if(uip_is_addr_mcast(ipaddr)) {
-    LOG_OUTPUT("6M-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
-  } else if(uip_is_addr_linklocal(ipaddr)) {
-    LOG_OUTPUT("6L-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
   } else {
-    LOG_OUTPUT("6G-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
+    #if BUILD_WITH_DEPLOYMENT
+    uint16_t compact_addr = deployment_id_from_ipaddr(ipaddr);
+    #else /* BUILD_WITH_DEPLOYMENT */
+    uint16_t compact_addr = UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]);
+    #endif /* BUILD_WITH_DEPLOYMENT */
+
+    if(uip_is_addr_mcast(ipaddr)) {
+      LOG_OUTPUT("6M-%04x", compact_addr);
+    } else if(uip_is_addr_linklocal(ipaddr)) {
+      LOG_OUTPUT("6L-%04x", compact_addr);
+    } else {
+      LOG_OUTPUT("6G-%04x", compact_addr);
+    }
   }
 }
 
@@ -155,11 +164,15 @@ log_lladdr_compact(const linkaddr_t *lladdr)
   if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) {
     LOG_OUTPUT("LL-NULL");
   } else {
+#if BUILD_WITH_DEPLOYMENT
+  LOG_OUTPUT("LL-%04u", deployment_id_from_lladdr(lladdr));
+#else /* BUILD_WITH_DEPLOYMENT */
 #if LINKADDR_SIZE == 8
     LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16[LINKADDR_SIZE/2-1]));
 #elif LINKADDR_SIZE == 2
     LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16));
 #endif
+#endif /* BUILD_WITH_DEPLOYMENT */
   }
 }
 /*---------------------------------------------------------------------------*/

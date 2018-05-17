@@ -36,6 +36,7 @@
  */
 
 #include "contiki.h"
+#include "contiki-net.h"
 #include "deployment.h"
 #include "sys/node-id.h"
 #include <string.h>
@@ -48,11 +49,11 @@ extern const struct id_mac DEPLOYMENT_MAPPING[];
 void
 deployment_init(void)
 {
-  node_id = deployment_id_from_addr((const linkaddr_t *)&linkaddr_node_addr);
+  node_id = deployment_id_from_lladdr((const linkaddr_t *)&linkaddr_node_addr);
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
-deployment_id_from_addr(const linkaddr_t *lladdr)
+deployment_id_from_lladdr(const linkaddr_t *lladdr)
 {
   const struct id_mac *curr = DEPLOYMENT_MAPPING;
   if(lladdr == NULL) {
@@ -69,7 +70,7 @@ deployment_id_from_addr(const linkaddr_t *lladdr)
 }
 /*---------------------------------------------------------------------------*/
 void
-deployment_addr_from_id(linkaddr_t *lladdr, uint16_t id)
+deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id)
 {
   const struct id_mac *curr = DEPLOYMENT_MAPPING;
   if(id == 0 || lladdr == NULL) {
@@ -82,5 +83,13 @@ deployment_addr_from_id(linkaddr_t *lladdr, uint16_t id)
     }
     curr++;
   }
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr)
+{
+  const linkaddr_t lladdr;
+  uip_ds6_set_lladdr_from_iid((uip_lladdr_t *)&lladdr, ipaddr);
+  return deployment_id_from_lladdr(&lladdr);
 }
 /*---------------------------------------------------------------------------*/
