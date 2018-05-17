@@ -45,7 +45,7 @@
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "App"
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DBG
 
 #define SEND_INTERVAL (CLOCK_SECOND)
 
@@ -62,7 +62,7 @@ PROCESS_THREAD(app_process, ev, data)
   PROCESS_BEGIN();
 
   /* Setup a periodic timer that expires after 10 seconds. */
-  etimer_set(&timer, SEND_INTERVAL);
+  etimer_set(&timer, CLOCK_SECOND * 10);
 
   if(node_id == ROOT_ID) {
     /* We are the root, start a DAG */
@@ -70,20 +70,38 @@ PROCESS_THREAD(app_process, ev, data)
     /* Set dest_ipaddr with DODAG ID, so we get the prefix */
     NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr);
     /* Wait until all nodes have joined */
-    while(uip_sr_num_nodes() < deployment_node_cont()) {
-      if(deployment_node_cont() > NETSTACK_MAX_ROUTE_ENTRIES) {
-        LOG_WARN("Not enough routing entries for deployment (%u/%u)\n", deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
-      }
-      LOG_INFO("Node count %u %u\n", uip_sr_num_nodes(), deployment_node_cont());
+    do {
+      uip_sr_node_t *link;
 
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
       etimer_reset(&timer);
-    }
+
+      if(deployment_node_cont() > NETSTACK_MAX_ROUTE_ENTRIES) {
+        LOG_WARN("Not enough routing entries for deployment: %u/%u\n", deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
+      }
+      LOG_INFO("Node count: %u/%u\n", uip_sr_num_nodes(), deployment_node_cont());
+
+      /* Print our routing */
+      LOG_DBG("Reachable nodes (%u in total):\n", uip_sr_num_nodes());
+      link = uip_sr_node_head();
+      while(link != NULL) {
+        uip_ipaddr_t node_ipaddr;
+        NETSTACK_ROUTING.get_sr_node_ipaddr(&node_ipaddr, link);
+        LOG_DBG("-- ");
+        LOG_DBG_6ADDR(&node_ipaddr);
+        LOG_DBG_("\n");
+        link = uip_sr_node_next(link);
+      }
+    } while(uip_sr_num_nodes() < deployment_node_cont());
 
     /* Now start requesting nodes at random */
-    while(uip_sr_num_nodes() < deployment_node_cont()) {
+    etimer_set(&timer, SEND_INTERVAL);
+    while(1) {
       static unsigned count = 0;
       uint16_t dest_id;
+
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+      etimer_reset(&timer);
 
       /* Select a destination at random. Iterate until we do not select ourselve */
       do {
@@ -96,9 +114,6 @@ PROCESS_THREAD(app_process, ev, data)
       LOG_INFO_6ADDR(&dest_ipaddr);
       LOG_INFO_(", count %u\n", count);
       count++;
-
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-      etimer_reset(&timer);
     }
   }
 
