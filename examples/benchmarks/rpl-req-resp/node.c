@@ -47,6 +47,8 @@
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
+#define SEND_INTERVAL (CLOCK_SECOND)
+
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -55,16 +57,49 @@ AUTOSTART_PROCESSES(&app_process);
 PROCESS_THREAD(app_process, ev, data)
 {
   static struct etimer timer;
+  static uip_ipaddr_t dest_ipaddr;
 
   PROCESS_BEGIN();
 
   /* Setup a periodic timer that expires after 10 seconds. */
-  etimer_set(&timer, CLOCK_SECOND * 10);
+  etimer_set(&timer, SEND_INTERVAL);
 
-  while(1) {
-    /* Wait for the periodic timer to expire and then restart the timer. */
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-    etimer_reset(&timer);
+  if(node_id == ROOT_ID) {
+    /* We are the root, start a DAG */
+    NETSTACK_ROUTING.root_start();
+    /* Set dest_ipaddr with DODAG ID, so we get the prefix */
+    NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr);
+    /* Wait until all nodes have joined */
+    while(uip_sr_num_nodes() < deployment_node_cont()) {
+      if(deployment_node_cont() > NETSTACK_MAX_ROUTE_ENTRIES) {
+        LOG_WARN("Not enough routing entries for deployment (%u/%u)\n", deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
+      }
+      LOG_INFO("Node count %u %u\n", uip_sr_num_nodes(), deployment_node_cont());
+
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+      etimer_reset(&timer);
+    }
+
+    /* Now start requesting nodes at random */
+    while(uip_sr_num_nodes() < deployment_node_cont()) {
+      static unsigned count = 0;
+      uint16_t dest_id;
+
+      /* Select a destination at random. Iterate until we do not select ourselve */
+      do {
+        dest_id = deployment_id_from_index(random_rand() % deployment_node_cont());
+      } while(dest_id == ROOT_ID);
+      /* Prefix was already set, set IID now */
+      deployment_iid_from_id(&dest_ipaddr, dest_id);
+
+      LOG_INFO("Sending to ");
+      LOG_INFO_6ADDR(&dest_ipaddr);
+      LOG_INFO_(", count %u\n", count);
+      count++;
+
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+      etimer_reset(&timer);
+    }
   }
 
   PROCESS_END();

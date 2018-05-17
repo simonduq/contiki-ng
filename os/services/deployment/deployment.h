@@ -46,7 +46,7 @@
 #include "net/linkaddr.h"
 
 /**
- * ID<->MAC address mapping structure
+ * \brief ID<->MAC address mapping structure
  */
 struct id_mac {
   uint16_t id;
@@ -77,6 +77,13 @@ struct id_mac {
 void deployment_init(void);
 
 /**
+ * Get the number of nodes for the deployment (length of mapping table)
+ *
+ * \return The number of nodes in the deployment
+ */
+int deployment_node_cont(void);
+
+/**
  * Get node ID from a link-layer address, from the deployment mapping table
  *
  * \param lladdr The link-layer address to look up for
@@ -93,12 +100,28 @@ uint16_t deployment_id_from_lladdr(const linkaddr_t *lladdr);
 void deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id);
 
 /**
- * Get node ID from an IPv6 address, from the deployment mapping table
+ * Get node ID from the IID of an IPv6 address
  *
- * \param ipaddr The IPv6 (global or link-local) address to look up for
- * \return Node ID from a corresponding IPv6 address
+ * \param ipaddr The IPv6 (global or link-local) address that contains the IID
+ * \return Node ID from a corresponding IID
  */
-uint16_t deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr);
+uint16_t deployment_id_from_iid(const uip_ipaddr_t *ipaddr);
+
+/**
+ * Get IPv6 IID from node IDs
+ *
+ * \param ipaddr The IPv6 where to write the IID
+ * \param id The node ID
+ */
+void deployment_iid_from_id(uip_ipaddr_t *ipaddr, uint16_t id);
+
+/**
+ * Get node ID from index in mapping table
+ *
+ * \param index The index in the deployment mapping table
+ * \return Node ID at the corresponding index
+ */
+uint16_t deployment_id_from_index(uint16_t index);
 
 #endif /* DEPLOYMENT_H_ */
 /** @} */

@@ -48,14 +48,34 @@
 #include <string.h>
 #include <stdio.h>
 
-/* List of ID<->MAC mapping used for different deployments */
+/**
+ * \brief List of ID<->MAC mapping used for different deployments
+ */
 extern const struct id_mac DEPLOYMENT_MAPPING[];
+/**
+ * \brief The number of nodes in the deployment
+ */
+static int node_count = 0;
 
 /*---------------------------------------------------------------------------*/
 void
 deployment_init(void)
 {
+  const struct id_mac *curr = DEPLOYMENT_MAPPING;
+  /* Initialize node_id */
   node_id = deployment_id_from_lladdr((const linkaddr_t *)&linkaddr_node_addr);
+  /* Count nodes */
+  node_count = 0;
+  while(curr->id != 0) {
+    node_count++;
+    curr++;
+  }
+}
+/*---------------------------------------------------------------------------*/
+int
+deployment_node_cont(void)
+{
+  return node_count;
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
@@ -92,11 +112,29 @@ deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id)
 }
 /*---------------------------------------------------------------------------*/
 uint16_t
-deployment_id_from_ipaddr(const uip_ipaddr_t *ipaddr)
+deployment_id_from_iid(const uip_ipaddr_t *ipaddr)
 {
   const linkaddr_t lladdr;
   uip_ds6_set_lladdr_from_iid((uip_lladdr_t *)&lladdr, ipaddr);
   return deployment_id_from_lladdr(&lladdr);
+}
+/*---------------------------------------------------------------------------*/
+void
+deployment_iid_from_id(uip_ipaddr_t *ipaddr, uint16_t id)
+{
+  linkaddr_t lladdr;
+  deployment_lladdr_from_id(&lladdr, id);
+  uip_ds6_set_addr_iid(ipaddr, (uip_lladdr_t *)&lladdr);
+}
+/*---------------------------------------------------------------------------*/
+uint16_t
+deployment_id_from_index(uint16_t index)
+{
+  if(index < deployment_node_cont()) {
+    return DEPLOYMENT_MAPPING[index].id;
+  } else {
+    return 0;
+  }
 }
 /*---------------------------------------------------------------------------*/
 

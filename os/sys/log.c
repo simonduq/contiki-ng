@@ -123,7 +123,7 @@ log_6addr_compact(const uip_ipaddr_t *ipaddr)
     LOG_OUTPUT("6A-NULL");
   } else {
     #if BUILD_WITH_DEPLOYMENT
-    uint16_t compact_addr = deployment_id_from_ipaddr(ipaddr);
+    uint16_t compact_addr = deployment_id_from_iid(ipaddr);
     #else /* BUILD_WITH_DEPLOYMENT */
     uint16_t compact_addr = UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]);
     #endif /* BUILD_WITH_DEPLOYMENT */
