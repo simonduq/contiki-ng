@@ -22,7 +22,6 @@
 // #define RPL_CONF_PROBING_INTERVAL (60 * CLOCK_SECOND)
 
 /* TSCH configuration */
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 1
 #define ORCHESTRA_CONF_UNICAST_PERIOD 7
 /* Five nines reliability paper used the config below */
 // #define TSCH_CONF_KEEPALIVE_TIMEOUT (20 * CLOCK_SECOND)
