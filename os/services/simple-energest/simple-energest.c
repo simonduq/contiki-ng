@@ -93,13 +93,13 @@ simple_energest_step(void)
   last_rx = curr_rx;
 
   LOG_INFO("--- Period summary #%u (%lu seconds)\n", count++, delta_time/ENERGEST_SECOND);
-  LOG_INFO("Total time  : %10lus\n", delta_time);
-  LOG_INFO("CPU         : %10lu (%lu permil)\n", delta_cpu, to_permil(delta_cpu, delta_time));
-  LOG_INFO("LPM         : %10lu (%lu permil)\n", delta_lpm, to_permil(delta_lpm, delta_time));
-  LOG_INFO("DEEP-LPM    : %10lu (%lu permil)\n", delta_deep_lpm, to_permil(delta_deep_lpm, delta_time));
-  LOG_INFO("Radio Tx    : %10lu (%lu permil)\n", delta_tx, to_permil(delta_tx, delta_time));
-  LOG_INFO("Radio Rx    : %10lu (%lu permil)\n", delta_rx, to_permil(delta_rx, delta_time));
-  LOG_INFO("Radio Total : %10lu (%lu permil)\n", delta_tx+delta_rx, to_permil(delta_tx+delta_rx, delta_time));
+  LOG_INFO("Total time  : %10lu\n", delta_time);
+  LOG_INFO("CPU         : %10lu/%10lu (%lu permil)\n", delta_cpu, delta_time, to_permil(delta_cpu, delta_time));
+  LOG_INFO("LPM         : %10lu/%10lu (%lu permil)\n", delta_lpm, delta_time, to_permil(delta_lpm, delta_time));
+  LOG_INFO("Deep LPM    : %10lu/%10lu (%lu permil)\n", delta_deep_lpm, delta_time, to_permil(delta_deep_lpm, delta_time));
+  LOG_INFO("Radio Tx    : %10lu/%10lu (%lu permil)\n", delta_tx, delta_time, to_permil(delta_tx, delta_time));
+  LOG_INFO("Radio Rx    : %10lu/%10lu (%lu permil)\n", delta_rx, delta_time, to_permil(delta_rx, delta_time));
+  LOG_INFO("Radio total : %10lu/%10lu (%lu permil)\n", delta_tx+delta_rx, delta_time, to_permil(delta_tx+delta_rx, delta_time));
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(simple_energest_process, ev, data)
