@@ -54,6 +54,7 @@ struct id_mac {
 };
 
 /**
+ * DEPLOYMENT_MAPPING:
  * A table of struct id_mac that provides ID-MAC mapping for a deployment.
  * Example with four nodes:
  * In configuration file:
@@ -67,9 +68,6 @@ struct id_mac {
       { 0, {{0}}}
     };
  */
-#ifndef DEPLOYMENT_MAPPING
-#error DEPLOYMENT_MAPPING not defined
-#endif /* DEPLOYMENT_MAPPING */
 
 /**
  * Initialize the deployment module
