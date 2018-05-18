@@ -100,14 +100,17 @@ PROCESS_THREAD(app_process, ev, data)
   simple_udp_register(&udp_conn, UDP_PORT, NULL,
                       UDP_PORT, udp_rx_callback);
 
-  /* Setup a periodic timer that expires after 10 seconds. */
-  etimer_set(&timer, CLOCK_SECOND * 10);
-
   if(node_id == ROOT_ID) {
+    /* Wait 2 seconds before starting */
+    etimer_set(&timer, CLOCK_SECOND * 2);
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+
     /* We are the root, start a DAG */
     NETSTACK_ROUTING.root_start();
     /* Set dest_ipaddr with DODAG ID, so we get the prefix */
     NETSTACK_ROUTING.get_root_ipaddr(&dest_ipaddr);
+    /* Setup a periodic timer that expires after 10 seconds. */
+    etimer_set(&timer, CLOCK_SECOND * 10);
     /* Wait until all nodes have joined */
     do {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
@@ -120,9 +123,9 @@ PROCESS_THREAD(app_process, ev, data)
 
     } while(uip_sr_num_nodes() < deployment_node_cont());
 
-    /* Now start requesting nodes at random */
+    /* Now start requesting nodes at random (and stop if nodes disconnect) */
     etimer_set(&timer, SEND_INTERVAL);
-    while(1) {
+    while(uip_sr_num_nodes() == deployment_node_cont()) {
       static unsigned count = 0;
       uint16_t dest_id;
       struct app_payload message;
