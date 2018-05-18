@@ -17,10 +17,15 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_columns', None)
 
 def parseRPL(log):
-    res = re.compile('.*?nbr count (\d*)').match(log)
+    res = re.compile('.*? rank (\d*).*?nbr count (\d*)').match(log)
     if res:
-        nbrCount = int(res.group(1))
-        return {'event': 'neighbors', 'neighbors': nbrCount }
+        rank = int(res.group(1))
+        nbrCount = int(res.group(2))
+        return {'event': 'rank', 'rank': rank }
+    res = re.compile('parent switch: .*? -> .*?-(\d*)$').match(log)
+    if res:
+        parent = int(res.group(1))
+        return {'event': 'switch', 'parent': parent }
     return None
 
 def parseEnergest(log):
@@ -68,9 +73,12 @@ def doParse(dir):
     time = None
     lastPrintedTime = 0
 
-    packets = []
-    energest = []
-    neighbors = []
+    arrays = {
+        "packets": [],
+        "energest": [],
+        "ranks": [],
+        "switches": [],
+    }
 
     print("\nProcessing %s" %(file))
     for line in open(file, 'r').readlines():
@@ -93,10 +101,10 @@ def doParse(dir):
                     ret["src"] = nodeid
                     ret["timestamp"] = timedelta(seconds=time)
                     ret['received'] = False
-                    packets.append(ret)
+                    arrays["packets"].append(ret)
                 elif(ret['event'] == 'recv' and ret['type'] == 'response'):
                     # update sent request series with latency and received flag
-                    txElement = [x for x in packets if x['event']=='send' and x['id']==ret['id']][0]
+                    txElement = [x for x in arrays["packets"] if x['event']=='send' and x['id']==ret['id']][0]
                     txElement['latency'] = time - txElement['timestamp'].seconds
                     txElement['received'] = True
 
@@ -105,26 +113,29 @@ def doParse(dir):
             if(ret != None):
                 ret["node"] = nodeid
                 ret["timestamp"] = timedelta(seconds=time)
-                energest.append(ret)
+                arrays["energest"].append(ret)
 
         if module == "RPL":
             ret = parseRPL(log)
             if(ret != None):
-                if(ret['event'] == 'neighbors'):
+                if(ret['event'] == 'rank'):
                     ret["node"] = nodeid
                     ret["timestamp"] = timedelta(seconds=time)
-                    neighbors.append(ret)
+                    arrays["ranks"].append(ret)
+                elif(ret['event'] == 'switch'):
+                    ret["node"] = nodeid
+                    ret["timestamp"] = timedelta(seconds=time)
+                    arrays["switches"].append(ret)
 
     print("")
 
-    dfPackets = DataFrame(packets)
-    dfPackets = dfPackets.set_index("timestamp")
-    dfEnergest = DataFrame(energest)
-    dfEnergest = dfEnergest.set_index("timestamp")
-    dfNeighbors = DataFrame(neighbors)
-    dfNeighbors = dfNeighbors.set_index("timestamp")
+    dfs = {}
+    for key in arrays.keys():
+        if(len(arrays[key]) > 0):
+            df = DataFrame(arrays[key])
+            dfs[key] = df.set_index("timestamp")
 
-    return dfPackets, dfEnergest, dfNeighbors
+    return dfs
 
 def main():
     if len(sys.argv) < 1:
@@ -134,22 +145,22 @@ def main():
     file = os.path.join(dir, "logs", "log.txt")
 
     # Parse the original log
-    dfPackets, dfEnergest, dfNeighbors = doParse(dir)
+    dfs = doParse(dir)
 
     ###########################################################
     # PDR
     ###########################################################
     print("Latency, for each packet: ")
-    print(dfPackets['latency'].as_matrix())
+    print(dfs["packets"]['latency'].as_matrix())
 
-    perNode = dfPackets.groupby("dest").agg({'received': {'received': 'sum', 'sent': 'count'}})
+    perNode = dfs["packets"].groupby("dest").agg({'received': {'received': 'sum', 'sent': 'count'}})
     perNode.columns = perNode.columns.droplevel(0)
     perNode["pdr"] =  100 * perNode["received"] / perNode["sent"]
 
     print("PDR, for each node: ")
     print(perNode['pdr'].as_matrix())
 
-    perTime = dfPackets.groupby([pd.Grouper(freq="2Min")]).agg({'received': {'received': 'sum', 'sent': 'count'}})
+    perTime = dfs["packets"].groupby([pd.Grouper(freq="2Min")]).agg({'received': {'received': 'sum', 'sent': 'count'}})
     perTime.columns = perTime.columns.droplevel(0)
     perTime["pdr"] =  100 * perTime["received"] / perTime["sent"]
 
@@ -160,13 +171,13 @@ def main():
     # Latency
     ###########################################################
     print("Latency, for each packet: ")
-    print(dfPackets['latency'].as_matrix())
+    print(dfs["packets"]['latency'].as_matrix())
 
-    perNode = dfPackets[["dest", "latency"]].groupby("dest").mean()
+    perNode = dfs["packets"][["dest", "latency"]].groupby("dest").mean()
     print("Latency, for each node: ")
     print(perNode['latency'].as_matrix())
 
-    perTime = dfPackets[["dest", "latency"]].groupby([pd.Grouper(freq="2Min")]).mean()
+    perTime = dfs["packets"][["dest", "latency"]].groupby([pd.Grouper(freq="2Min")]).mean()
     print("Latency, timeline: ")
     print(perTime['latency'].as_matrix())
 
@@ -174,14 +185,14 @@ def main():
     # Energest
     ###########################################################
 
-    perNode = dfEnergest.groupby("node").mean()
+    perNode = dfs["energest"].groupby("node").mean()
     print("Duty Cycle, for each node: ")
     print(perNode['duty-cycle'].as_matrix())
 
     print("Channel Utilization, for each node: ")
     print(perNode['channel-utilization'].as_matrix())
 
-    perTime = dfEnergest.groupby([pd.Grouper(freq="2Min")]).mean()
+    perTime = dfs["energest"].groupby([pd.Grouper(freq="2Min")]).mean()
     print("Duty Cycle, timeline: ")
     print(perTime['duty-cycle'].as_matrix())
 
@@ -189,18 +200,27 @@ def main():
     print(perTime['channel-utilization'].as_matrix())
 
     ###########################################################
-    # Neighbors
+    # Ranks
     ###########################################################
+    perNode = dfs["ranks"].groupby("node").mean()
+    print("Ranks, for each node: ")
+    print(perNode['rank'].as_matrix())
+    # all info for a given nbr: dfs["ranks"][(dfs["ranks"].node==1)]["neighbors"].as_matrix()
 
-    perNode = dfNeighbors.groupby("node").mean()
-    print("Neihbors, for each node: ")
-    print(perNode['neighbors'].as_matrix())
-    # all info for a given nbr: dfNeighbors[(dfNeighbors.node==1)]["neighbors"].as_matrix()
+    perTime = dfs["ranks"].groupby([pd.Grouper(freq="2Min")]).mean()
+    print("Ranks, timeline: ")
+    print(perTime['rank'].as_matrix())
 
-    perTime = dfNeighbors.groupby([pd.Grouper(freq="2Min")]).mean()
-    print("Neighbors, timeline: ")
-    print(perTime['neighbors'].as_matrix())
+    ###########################################################
+    # Parent switches
+    ###########################################################
+    perNode = dfs["switches"].groupby("node").count()
+    print("Ranks, for each node: ")
+    print(perNode['parent'].as_matrix())
+    # all info for a given nbr: dfs["ranks"][(dfs["ranks"].node==1)]["neighbors"].as_matrix()
 
-    embed()
+    perTime = dfs["switches"].groupby([pd.Grouper(freq="2Min")]).count()
+    print("Ranks, timeline: ")
+    print(perTime['parent'].as_matrix())
 
 main()
