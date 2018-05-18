@@ -6,4 +6,5 @@ MODULES += os/services/deployment
 MODULES += os/services/simple-energest
 CONTIKI = ../../..
 MAKE_MAC = MAKE_MAC_TSCH
+MODULES += os/services/orchestra
 include $(CONTIKI)/Makefile.include
