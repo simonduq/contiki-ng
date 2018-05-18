@@ -65,7 +65,7 @@ rpl_dag_root_print_links(const char *str)
         LOG_INFO("links: %s\n", buf);
         link = uip_sr_node_next(link);
       }
-      LOG_INFO("links: end of list\n", uip_sr_num_nodes());
+      LOG_INFO("links: end of list\n");
     } else {
       LOG_INFO("No routing links\n");
     }
