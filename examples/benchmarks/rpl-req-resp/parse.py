@@ -44,15 +44,20 @@ def updateTopology(child, parent):
     parents[child] = parent
 
 def parseRPL(log):
-    res = re.compile('.*? rank (\d*).*?nbr count (\d*)').match(log)
+    res = re.compile('.*? rank (\d*).*?dioint (\d*).*?nbr count (\d*)').match(log)
     if res:
         rank = int(res.group(1))
-        nbrCount = int(res.group(2))
-        return {'event': 'rank', 'rank': rank }
+        trickle = (2**int(res.group(2)))/(60*1000.)
+        nbrCount = int(res.group(3))
+        return {'event': 'rank', 'rank': rank, 'trickle': trickle }
     res = re.compile('parent switch: .*? -> .*?-(\d*)$').match(log)
     if res:
         parent = int(res.group(1))
         return {'event': 'switch', 'pswitch': parent }
+    res = re.compile('sending a (.+?) ').match(log)
+    if res:
+        message = res.group(1)
+        return {'event': 'sending', 'message': message }
     res = re.compile('links: 6G-(\d+)\s*to 6G-(\d+)').match(log)
     if res:
         child = int(res.group(1))
@@ -116,6 +121,7 @@ def doParse(dir):
         "packets": [],
         "energest": [],
         "ranks": [],
+        "trickle": [],
         "switches": [],
         "topology": [],
     }
@@ -166,8 +172,13 @@ def doParse(dir):
                 entry.update(ret)
                 if(ret['event'] == 'rank'):
                     arrays["ranks"].append(entry)
+                    arrays["trickle"].append(entry)
                 elif(ret['event'] == 'switch'):
                     arrays["switches"].append(entry)
+                elif(ret['event'] == 'sending'):
+                    if not ret['message'] in arrays:
+                        arrays[ret['message']] = []
+                    arrays[ret['message']].append(entry)
                 elif(ret['event'] == 'topology'):
                     for n in parents.keys():
                         nodeEntry = entry.copy()
@@ -189,15 +200,20 @@ def doParse(dir):
 
     return dfs
 
-def outputStats(file, df, metric, agg, name):
+def outputStats(file, df, metric, agg, name, metricLabel = None):
     perNode = getattr(df.groupby("node")[metric], agg)()
     perTime = getattr(df.groupby([pd.Grouper(freq="2Min")])[metric], agg)()
 
-    file.write("  %s:\n" %(metric))
+    file.write("  %s:\n" %(metricLabel if metricLabel != None else metric))
     file.write("    name: %s\n" %(name))
-    file.write("    per-node: [%s]\n" %(', '.join(["%.4f"%(x) for x in perNode])))
-    file.write("    per-time: [%s]\n" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
-    #embed()
+    file.write("    per-node:\n")
+    file.write("      x: [%s]\n" %(", ".join(["%u"%x for x in sort(df.node.unique())])))
+    file.write("      y: [%s]\n" %(', '.join(["%.4f"%(x) for x in perNode])))
+    file.write("    per-time:\n")
+    file.write("      x: [%s]\n" %(", ".join(["%u"%x for x in range(0, 2*len(df.groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
+    file.write("      y: [%s]\n" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
+    if metricLabel=="rpl-daoack":
+        embed()
 
 def main():
     if len(sys.argv) < 1:
@@ -224,8 +240,6 @@ def main():
     outFile.write("repository: %s\n" %(repository))
     outFile.write("branch: %s\n" %(branch))
     outFile.write("commit: %s\n" %(commit))
-    outFile.write("nodes: [%s]\n" %(", ".join(["%u"%x for x in sort(dfs["energest"].node.unique())])))
-    outFile.write("times: [%s]\n" %(", ".join(["%u"%x for x in range(0, 2*len(dfs["energest"].groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
     outFile.write("global-stats:\n")
     outFile.write("  pdr: %.4f\n" %(dfs["packets"]["pdr"].mean()))
     outFile.write("  loss-rate: %.e\n" %(1-(dfs["packets"]["pdr"].mean()/100)))
@@ -245,8 +259,14 @@ def main():
     outputStats(outFile, dfs["energest"], "channel-utilization", "mean", "Channel utilization (%)")
 
     outputStats(outFile, dfs["ranks"], "rank", "mean", "RPL rank (ETX-128)")
-
     outputStats(outFile, dfs["switches"], "pswitch", "count", "RPL parent switches (#)")
+    outputStats(outFile, dfs["trickle"], "trickle", "mean", "RPL Trickle period (min)")
+
+    outputStats(outFile, dfs["DIS"], "message", "count", "RPL DIS sent (#)", "rpl-dis")
+    outputStats(outFile, dfs["unicast-DIO"], "message", "count", "RPL uDIO sent (#)", "rpl-udio")
+    outputStats(outFile, dfs["multicast-DIO"], "message", "count", "RPL mDIO sent (#)", "rpl-mdio")
+    outputStats(outFile, dfs["DAO"], "message", "count", "RPL DAO sent (#)", "rpl-dao")
+    outputStats(outFile, dfs["DAO-ACK"], "message", "count", "RPL DAO-ACK sent (#)", "rpl-daoack")
 
     outputStats(outFile, dfs["topology"], "hops", "mean", "RPL hop count (#)")
     outputStats(outFile, dfs["topology"], "children", "mean", "RPL children count (#)")
