@@ -117,7 +117,8 @@ PROCESS_THREAD(app_process, ev, data)
       etimer_reset(&timer);
 
       if(deployment_node_cont() > NETSTACK_MAX_ROUTE_ENTRIES) {
-        LOG_WARN("Not enough routing entries for deployment: %u/%u\n", deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
+        LOG_WARN("Not enough routing entries for deployment: %u/%u\n",
+                  deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
       }
       LOG_INFO("Node count: %u/%u\n", uip_sr_num_nodes(), deployment_node_cont());
 
