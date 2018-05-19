@@ -12,10 +12,13 @@ from collections import OrderedDict
 from IPython import embed
 import matplotlib as mpl
 
+TARGET_DIR = "/home/simon/simonduq.github.io/_runs"
+
 pd.set_option('display.max_rows', 48)
 pd.set_option('display.width', None)
 pd.set_option('display.max_columns', None)
 
+networkFormationTime = None
 parents = {}
 
 def calculateHops(node):
@@ -102,6 +105,8 @@ def parseLine(line):
     return None, None, None, None, None
 
 def doParse(dir):
+    global networkFormationTime
+
     file = os.path.join(dir, "logs", "log.txt")
 
     time = None
@@ -141,6 +146,8 @@ def doParse(dir):
                     # populate series of sent requests
                     entry['pdr'] = 0.
                     arrays["packets"].append(entry)
+                    if networkFormationTime == None:
+                        networkFormationTime = time
                 elif(ret['event'] == 'recv' and ret['type'] == 'response'):
                     # update sent request series with latency and PDR
                     txElement = [x for x in arrays["packets"] if x['event']=='send' and x['id']==ret['id']][0]
@@ -171,6 +178,9 @@ def doParse(dir):
 
     print("")
 
+    # Remove last few packets -- might be in-flight when test stopped
+    arrays["packets"] = arrays["packets"][0:-10]
+
     dfs = {}
     for key in arrays.keys():
         if(len(arrays[key]) > 0):
@@ -179,37 +189,69 @@ def doParse(dir):
 
     return dfs
 
-def outputStats(df, metric, agg):
-    perNode = getattr(df[["node", metric]].groupby("node"), agg)()
-    print("%s, for each node: " %(metric))
-    print(perNode[metric].as_matrix())
+def outputStats(file, df, metric, agg, name):
+    perNode = getattr(df.groupby("node")[metric], agg)()
+    perTime = getattr(df.groupby([pd.Grouper(freq="2Min")])[metric], agg)()
 
-    perTime = getattr(df[["node", metric]].groupby([pd.Grouper(freq="2Min")]), agg)()
-    print("%s, timeline: " %(metric))
-    print(perTime[metric].as_matrix())
+    file.write("  %s:\n" %(metric))
+    file.write("    name: %s\n" %(name))
+    file.write("    per-node: [%s]\n" %(', '.join(["%.4f"%(x) for x in perNode])))
+    file.write("    per-time: [%s]\n" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
+    #embed()
 
 def main():
     if len(sys.argv) < 1:
         return
     else:
         dir = sys.argv[1].rstrip('/')
-    file = os.path.join(dir, "logs", "log.txt")
+    date = open(os.path.join(dir, ".started"), 'r').readlines()[0].strip()
+    repository = "simonduq/contiki-ng"
+    branch = "wip/testbed"
+    jobId = dir.split("_")[0]
+    label = "Pre-release"
+    commit = "ae26163dd07b6ebf3a2d0aa6eeec52dd2f0b5768"
 
     # Parse the original log
     dfs = doParse(dir)
 
+    if len(dfs) == 0:
+        return
+
+    outFile = open(os.path.join(TARGET_DIR, "%s.md"%(jobId)), "w")
+    outFile.write("---\n")
+    outFile.write("label: %s\n" %(label))
+    outFile.write("date: %s\n" %(date))
+    outFile.write("repository: %s\n" %(repository))
+    outFile.write("branch: %s\n" %(branch))
+    outFile.write("commit: %s\n" %(commit))
+    outFile.write("nodes: [%s]\n" %(", ".join(["%u"%x for x in sort(dfs["energest"].node.unique())])))
+    outFile.write("times: [%s]\n" %(", ".join(["%u"%x for x in range(0, 2*len(dfs["energest"].groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
+    outFile.write("global-stats:\n")
+    outFile.write("  pdr: %.4f\n" %(dfs["packets"]["pdr"].mean()))
+    outFile.write("  loss-rate: %.e\n" %(1-(dfs["packets"]["pdr"].mean()/100)))
+    outFile.write("  packets-sent: %u\n" %(dfs["packets"]["pdr"].count()))
+    outFile.write("  packets-received: %u\n" %(dfs["packets"]["pdr"].sum()/100))
+    outFile.write("  latency: %.4f\n" %(dfs["packets"]["latency"].mean()))
+    outFile.write("  duty-cycle: %.2f\n" %(dfs["energest"]["duty-cycle"].mean()))
+    outFile.write("  channel-utilization: %.2f\n" %(dfs["energest"]["channel-utilization"].mean()))
+    outFile.write("  network-formation-time: %.2f\n" %(networkFormationTime))
+    outFile.write("stats:\n")
+
     # Output relevant metrics
-    outputStats(dfs["packets"], "pdr", "mean")
-    outputStats(dfs["packets"], "latency", "mean")
+    outputStats(outFile, dfs["packets"], "pdr", "mean", "End-to-end PDR (%)")
+    outputStats(outFile, dfs["packets"], "latency", "mean", "Round-trip latency (s)")
 
-    outputStats(dfs["energest"], "duty-cycle", "mean")
-    outputStats(dfs["energest"], "channel-utilization", "mean")
+    outputStats(outFile, dfs["energest"], "duty-cycle", "mean", "Radio duty cycle (%)")
+    outputStats(outFile, dfs["energest"], "channel-utilization", "mean", "Channel utilization (%)")
 
-    outputStats(dfs["ranks"], "rank", "mean")
+    outputStats(outFile, dfs["ranks"], "rank", "mean", "RPL rank (ETX-128)")
 
-    outputStats(dfs["switches"], "pswitch", "count")
+    outputStats(outFile, dfs["switches"], "pswitch", "count", "RPL parent switches (#)")
 
-    outputStats(dfs["topology"], "hops", "mean")
-    outputStats(dfs["topology"], "children", "mean")
+    outputStats(outFile, dfs["topology"], "hops", "mean", "RPL hop count (#)")
+    outputStats(outFile, dfs["topology"], "children", "mean", "RPL children count (#)")
+
+    outFile.write("---\n")
+    outFile.write("\n{% include run.md %}\n")
 
 main()
