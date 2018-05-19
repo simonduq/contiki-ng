@@ -1,0 +1,2 @@
+CFLAGS += -DBOARD_TB_SENSE2=1
+BOARD_SOURCEFILES += board.c leds-arch.c button-sensor.c

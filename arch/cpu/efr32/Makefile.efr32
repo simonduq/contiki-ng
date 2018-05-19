@@ -1,0 +1,230 @@
+# Default part number
+PART_NUMBER     ?= EFR32MG1P232F256GM48
+EFR32_MCU       ?= EFR32MG1P
+EFR32_FAMILY    ?= efr32xg1
+EFR32_JLINK_MCU ?= EFR32MG1PXXXF256
+
+# Use newer CMSIS
+CONTIKI_CPU_ARM_COMMON = $(CONTIKI)/arch/cpu/arm
+
+# Warning for non-initialized submodules
+ifeq (${wildcard $(CONTIKI_CPU_ARM_COMMON)/cortex-m/CMSIS/core_cm4.h},)
+  ${error Could not find the ARM CMSIS submodule. Please run "git submodule update --init --recursive" and try again}
+endif
+
+ifndef GECKO_SDK_VERSION
+  GECKO_SDK_VERSION := v2.1
+endif
+
+ifndef GECKO_SDK_PATH
+  GECKO_SDK_PATH := $(CONTIKI)/gecko_sdk_suite
+endif
+
+EFR32_MCU_LOWER := ${strip ${shell echo $(EFR32_MCU) | sed y!$(UPPERCASE)!$(LOWERCASE)!}}
+
+# Define the source files we have in the EFR32 port
+
+CONTIKI_CPU_DIRS = . dev
+
+CONTIKIDIRS += $(CONTIKI_CPU_ARM_COMMON) \
+	       ${addprefix $(CONTIKI_CPU_ARM_COMMON)/,common/dbg-io cortex-m/CMSIS}
+CONTIKIDIRS += dev
+
+#includes common to all targets
+INC_PATHS += ${addprefix Device/SiliconLabs/$(EFR32_MCU)/,Include Source Source/GCC}
+INC_PATHS += emlib/inc emlib/src emdrv/uartdrv/inc emdrv/uartdrv/src emdrv/uartdrv/config emdrv/common/inc emdrv/dmadrv/src emdrv/dmadrv/inc emdrv/dmadrv/config
+INC_PATHS += ${addprefix radio/rail_lib/,chip/efr32 chip/efr32/rf/common/cortex common protocol plugin/pa-conversions}
+
+EXTERNALDIRS += $(addprefix $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/, $(INC_PATHS))
+
+EFR32MG    := clock.c \
+              rtimer-arch.c \
+              dbg.c \
+              watchdog.c \
+              efr32-radio.c \
+	      gpiointerrupt.c
+EMDRV      := uartdrv.c \
+              dmadrv.c
+EMLIB      := em_acmp.c \
+              em_adc.c \
+              em_aes.c \
+              em_assert.c \
+              em_burtc.c \
+              em_cmu.c \
+              em_core.c \
+              em_cryotimer.c \
+              em_crypto.c \
+              em_dac.c \
+              em_dbg.c \
+              em_dma.c \
+              em_ebi.c \
+              em_emu.c \
+              em_gpcrc.c \
+              em_gpio.c \
+              em_i2c.c \
+              em_idac.c \
+              em_lcd.c \
+              em_ldma.c \
+              em_lesense.c \
+              em_letimer.c \
+              em_leuart.c \
+              em_mpu.c \
+              em_msc.c \
+              em_opamp.c \
+              em_pcnt.c \
+              em_prs.c \
+              em_rmu.c \
+              em_rtc.c \
+              em_rtcc.c \
+              em_system.c \
+              em_timer.c \
+              em_usart.c \
+              em_vcmp.c \
+              em_wdog.c
+
+RAILFILES  := pa_conversions_efr32.c
+
+MODULES += os/lib/dbg-io
+
+START_SOURCEFILES := startup_$(EFR32_MCU_LOWER).c \
+                     system_$(EFR32_MCU_LOWER).c
+
+CONTIKI_SOURCEFILES += $(EFR32MG) \
+                       $(EMLIB) \
+                       $(EMDRV) \
+                       $(SYSAPPS) \
+                       $(TARGETLIBS) \
+                       $(RAILFILES) \
+                       $(START_SOURCEFILES)
+
+# LIBRAIL := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/protocol/flex_2.1/connect/plugins/libraries/phy-rail-$(EFR32_FAMILY)-rtos-library-gcc.a
+
+LIBRAIL := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/radio/rail_lib/autogen/librail_release/librail_multiprotocol_$(EFR32_FAMILY)_gcc_release.a
+
+TARGET_LIBFILES := $(LIBRAIL)
+
+LINKERSCRIPT := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/Device/SiliconLabs/$(EFR32_MCU)/Source/GCC/$(EFR32_MCU_LOWER).ld
+
+TARGET_STARTFILES = ${addprefix $(OBJECTDIR)/,${call oname, $(START_SOURCEFILES)}}
+
+# Compiler definitions
+
+CC       := arm-none-eabi-gcc
+# Use gcc for linking
+LD       := arm-none-eabi-gcc
+AS       := arm-none-eabi-as
+AR       := arm-none-eabi-ar
+NM       := arm-none-eabi-nm
+OBJCOPY  := arm-none-eabi-objcopy
+STRIP    := arm-none-eabi-strip
+SIZE     := arm-none-eabi-size
+SIZEFLAGS := -A
+
+ARCH_FLAGS := -march=armv7-m \
+              -mthumb
+
+CFLAGS += -D$(PART_NUMBER) \
+          -D$(EFR32_MCU) \
+          -DWITH_ASCII \
+          -D__START=main \
+          -D__STARTUP_CLEAR_BSS \
+          -DCMSIS_DEV_HDR=\"em_device.h\" \
+          -Dsvcall_handler=SVC_Handler \
+          -Dpendsv_handler=PendSV_Handler \
+          $(ARCH_FLAGS)
+
+ifdef DEBUG
+  CFLAGS += -g -O0 -Wall
+else
+  CFLAGS += -g -O1 -Wall -Wno-strict-aliasing
+endif
+
+ifeq ($(WERROR),1)
+ CFLAGS += -Werror
+endif
+
+LDFLAGS += -L $(CONTIKI_CPU) \
+           -Wl,--start-group \
+           -T $(LINKERSCRIPT) \
+           -nostartfiles \
+           $(CFLAGS)
+
+ifeq ($(V),1)
+  TRACE_OBJCOPY =
+  TRACE_UPLOAD =
+else
+  TRACE_OBJCOPY = @echo "  OBJCOPY  " $@
+  TRACE_UPLOAD = @echo "  UPLOAD   " $<
+endif
+
+# Custom build rules
+
+%.bin: %.$(TARGET)
+	$(TRACE_OBJCOPY)
+	$(Q)$(OBJCOPY) -O binary $< $@
+
+# Flashing
+
+ifeq ($(HOST_OS),Darwin)
+ JLINK_PATH ?= /Applications/SEGGER/JLink
+else
+ JLINK_PATH ?= /opt/SEGGER/JLink
+endif
+JLINK_EXE = $(JLINK_PATH)/JLinkExe
+
+ifneq (${wildcard $(JLINK_EXE)},)
+
+  _JLINK_SN_LIST = ${shell echo "ShowEmuList\nqc" | $(JLINK_EXE) \
+                           | sed -ne '/Serial number: / s/.*Serial number: \([0-9]*\).*/\1/p'}
+
+  define jlink_upload_v
+    echo "RSetType 5\nr\nconnect\nr\nloadbin "$(1)" 0\nqc" \
+        | $(JLINK_EXE) -AutoConnect 1 -ExitOnError 1 \
+                       -Device $(EFR32_JLINK_MCU) -If SWD -Speed auto \
+                       ${if ${strip $(2)},-SelectEmuBySN $(2),}
+  endef
+
+  ifeq ($(V),1)
+    jlink_upload = ${call jlink_upload_v,$(1),$(2)}
+  else
+    define jlink_upload
+      ${call jlink_upload_v,$(1),$(2)} > /dev/null; \
+      ${if $(2),\
+        if [ $$? -eq 0 ]; then \
+          echo "            $(2): OK"; \
+        else \
+          echo "            $(2): FAILED"; \
+        fi \
+      ,}
+    endef
+  endif
+
+  define NL
+
+
+  endef
+
+%.upload: %.bin
+	$(TRACE_UPLOAD)
+	$(Q)${call jlink_upload,$<,$(JLINK_SN)}
+
+%.upload-all: %.bin
+	$(TRACE_UPLOAD)
+	${foreach sn,$(_JLINK_SN_LIST),$(Q)${call jlink_upload,$<,$(sn)}$(NL)}
+
+jlink-list:
+	@echo "ShowEmuList\nqc" | $(JLINK_EXE) | grep 'Serial number:'
+
+else
+jlink-not-found-msg:
+	@echo " |"
+	@echo " | Error: JLinkExe not found."
+	@echo " | Please install J-Link Software Pack and add 'JLINK_PATH=/path/to/JLink/'"
+	@echo " | with JLinkExe's directory to make's command line or export it in the shell."
+	@echo " |"
+
+%.upload %.upload-all: jlink-not-found-msg
+	@false
+jlink-list: jlink-not-found-msg
+	@false
+endif
