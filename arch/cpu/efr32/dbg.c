@@ -68,6 +68,7 @@ static UARTDRV_HandleData_t sUartHandleData;
 static UARTDRV_Handle_t     sUartHandle = &sUartHandleData;
 static uint8_t              sReceiveBuffer[2];
 static uint16_t             transmit_len = 0;
+static uint8_t txbuzy = 0;
 static int (* input_handler)(unsigned char c);
 
 typedef struct ReceiveFifo_t
@@ -113,6 +114,7 @@ transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_
   (void) aStatus;
   (void) aData;
   (void) aCount;
+  txbuzy = 0;
   if(wpos != rpos) {
     process_poll(&serial_proc);
   }
@@ -177,16 +179,17 @@ dbg_send_bytes(const unsigned char *seq, unsigned int len)
       transmit_len++;
     }
   }
-  UARTDRV_Transmit(sUartHandle, (uint8_t *) "poll\n", 5, transmitDone);
   process_poll(&serial_proc);
   return len;
 }
+
+
+static unsigned char buf[64];
 
 static void
 process_transmit(void)
 {
   /* send max 64 per transmit */
-  unsigned char buf[64];
   int len = 0;
 
   if(wpos == rpos) {
@@ -207,6 +210,8 @@ process_transmit(void)
   memcpy(buf, &tx_buf[rpos], len);
   rpos = (rpos + len) % TX_SIZE;
 
+  /* transmission ongoing... */
+  txbuzy = 1;
   UARTDRV_Transmit(sUartHandle, (uint8_t *)buf, len, transmitDone);
 }
 /*---------------------------------------------------------------------------*/
@@ -227,7 +232,6 @@ PROCESS_THREAD(serial_proc, ev, data)
   PROCESS_BEGIN();
   while(1) {
     PROCESS_WAIT_EVENT();
-    UARTDRV_Transmit(sUartHandle, (uint8_t *) "out\n", 5, transmitDone);
     process_receive();
     process_transmit();
   }
