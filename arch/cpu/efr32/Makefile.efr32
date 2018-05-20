@@ -27,12 +27,12 @@ EFR32_MCU_LOWER := ${strip ${shell echo $(EFR32_MCU) | sed y!$(UPPERCASE)!$(LOWE
 CONTIKI_CPU_DIRS = . dev
 
 CONTIKIDIRS += $(CONTIKI_CPU_ARM_COMMON) \
-	       ${addprefix $(CONTIKI_CPU_ARM_COMMON)/,common/dbg-io cortex-m/CMSIS}
+	       ${addprefix $(CONTIKI_CPU_ARM_COMMON)/,cortex-m/CMSIS}
 CONTIKIDIRS += dev
 
 #includes common to all targets
 INC_PATHS += ${addprefix Device/SiliconLabs/$(EFR32_MCU)/,Include Source Source/GCC}
-INC_PATHS += emlib/inc emlib/src emdrv/uartdrv/inc emdrv/uartdrv/src emdrv/uartdrv/config emdrv/common/inc emdrv/dmadrv/src emdrv/dmadrv/inc emdrv/dmadrv/config
+INC_PATHS += emlib/inc emlib/src emdrv/uartdrv/inc emdrv/uartdrv/src emdrv/uartdrv/config emdrv/common/inc emdrv/dmadrv/src emdrv/dmadrv/inc emdrv/dmadrv/config emdrv/gpiointerrupt/inc emdrv/gpiointerrupt/src
 INC_PATHS += ${addprefix radio/rail_lib/,chip/efr32 chip/efr32/rf/common/cortex common protocol plugin/pa-conversions}
 
 EXTERNALDIRS += $(addprefix $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/, $(INC_PATHS))
@@ -228,3 +228,4 @@ jlink-not-found-msg:
 jlink-list: jlink-not-found-msg
 	@false
 endif
+

@@ -28,7 +28,6 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "debug-uart.h"
 #include "em_device.h"
 #include "em_gpio.h"
 #include "em_cmu.h"

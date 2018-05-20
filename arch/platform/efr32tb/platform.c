@@ -37,7 +37,6 @@
 #include <em_emu.h>
 #include <em_usart.h>
 #include "em_system.h"
-#include "debug-uart.h"
 #include "dev/serial-line.h"
 #include "lib/sensors.h"
 
@@ -122,7 +121,7 @@ platform_init_stage_one(void)
   CMU_ClockEnable(cmuClock_LETIMER0, true);
 
 
-  debug_uart_init();
+  /* debug_uart_init(); */
   leds_init();
   leds_on(LEDS_RED);
 }
@@ -149,7 +148,7 @@ platform_init_stage_three()
   board_init();
   process_start(&sensors_process, NULL);
 
-  debug_uart_set_input_handler(serial_line_input_byte);
+  /* debug_uart_set_input_handler(serial_line_input_byte); */
   serial_line_init();
 }
 /*---------------------------------------------------------------------------*/

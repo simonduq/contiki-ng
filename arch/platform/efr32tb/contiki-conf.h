@@ -34,9 +34,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define CCIF
-#define CLIF
-
 /* Include project specific configuration */
 #ifdef PROJECT_CONF_PATH
 #include PROJECT_CONF_PATH
@@ -44,6 +41,8 @@
 
 /* Board specific configuration */
 #include "board.h"
+
+#include "efr32-def.h"
 
 /* Disable the stack check library by default: .rom overflow otherwise */
 #ifndef STACK_CHECK_CONF_ENABLED
