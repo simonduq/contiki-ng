@@ -5,6 +5,8 @@ MODULES_REL += ../testbeds
 MODULES += os/services/deployment
 MODULES += os/services/simple-energest
 
+CONFIG?=CONFIG_TSCH_OPTIMS
+
 ifeq ($(CONFIG),CONFIG_CSMA)
 MAKE_MAC = MAKE_MAC_CSMA
 else ifeq ($(CONFIG),CONFIG_TSCH)
