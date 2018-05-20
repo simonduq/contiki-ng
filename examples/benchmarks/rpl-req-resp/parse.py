@@ -4,6 +4,7 @@ import re
 import os
 import fileinput
 import math
+import yaml
 import pandas as pd
 from pandas import *
 from pylab import *
@@ -225,7 +226,7 @@ def main():
     repository = "simonduq/contiki-ng"
     branch = "wip/testbed"
     path = "examples/benchmarks/rpl-req-resp"
-    configuration = "CONFIG_TSCH_OPTIMS"
+    flags = "{ CONFIG: CONFIG_TSCH_OPTIMS }"
 
     jobId = dir.split("_")[0]
     commit = "ae26163dd07b6ebf3a2d0aa6eeec52dd2f0b5768"
@@ -236,18 +237,25 @@ def main():
     if len(dfs) == 0:
         return
 
+    #embed()
+    taskData = yaml.load(open(os.path.join(dir, "task.yml"), "r"))
+
     outFile = open(os.path.join(TARGET_DIR, "%s.md"%(jobId)), "w")
     outFile.write("---\n")
     outFile.write("date: %s\n" %(date))
     outFile.write("duration: %s\n" %(duration))
 
-    outFile.write("setup: %s\n" %(setup))
-    #outFile.write("repository: %s\n" %(repository))
-    #outFile.write("branch: %s\n" %(branch))
-    #outFile.write("path: %s\n" %(branch))
-    #outFile.write("configuration: %s\n" %(configuration))
+    outFile.write("setup: %s\n" %(taskData["setup"]))
+    if "repository" in taskData:
+        outFile.write("repository: %s\n" %(taskData["repository"]))
+    if "branch" in taskData:
+        outFile.write("branch: %s\n" %(taskData["branch"]))
+    if "xpbranch" in taskData:
+        outFile.write("path: %s\n" %(taskData["xppath"]))
+    if "flags" in taskData:
+        outFile.write("flags: %s\n" %(taskData["flags"]))
 
-    outFile.write("commit: %s\n" %(commit))
+    outFile.write("commit: %s\n" %(taskData["commit"]))
     outFile.write("global-stats:\n")
     outFile.write("  pdr: %.4f\n" %(dfs["packets"]["pdr"].mean()))
     outFile.write("  loss-rate: %.e\n" %(1-(dfs["packets"]["pdr"].mean()/100)))
