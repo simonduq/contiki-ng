@@ -126,9 +126,6 @@ platform_init_stage_one(void)
   CMU_ClockEnable(cmuClock_LETIMER0, true);
 
 
-  dbg_init();
-  printf("DBG initialized **\n");
-
   leds_init();
   leds_on(LEDS_RED);
 }
@@ -138,6 +135,9 @@ platform_init_stage_two()
 {
   uint64_t uid = SYSTEM_GetUnique();
   uint64_t uid_net_order = swap_long(uid);
+
+  dbg_init();
+  printf("DBG initialized **\n");
 
   /* linkaddr configuration */
   memcpy(linkaddr_node_addr.u8, &uid_net_order, LINKADDR_SIZE);

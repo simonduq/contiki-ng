@@ -36,6 +36,7 @@
 #include <stddef.h>
 #include "em_core.h"
 #include "uartdrv.h"
+#include <string.h>
 
 #define USART_INIT                                                      \
   {                                                                     \
@@ -79,7 +80,16 @@ typedef struct ReceiveFifo_t
   uint16_t mTail;
 } ReceiveFifo_t;
 
+
 static ReceiveFifo_t sReceiveFifo;
+static int overflow = 0;
+
+#define TX_SIZE 256
+static uint8_t tx_buf[TX_SIZE];
+/* first char to read */
+static uint16_t rpos = 0;
+/* last char written (or next to write) */
+static uint16_t wpos = 0;
 
 /* The process for receiving packets */
 PROCESS(serial_proc, "efr32 serial driver");
@@ -103,7 +113,9 @@ transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_
   (void) aStatus;
   (void) aData;
   (void) aCount;
-  transmit_len -= aCount;
+  if(wpos != rpos) {
+    process_poll(&serial_proc);
+  }
 }
 
 static void
@@ -143,20 +155,59 @@ void dbg_init(void)
 
   UARTDRV_Init(sUartHandle, &uartInit);
 
+  process_start(&serial_proc, NULL);
+
   for(uint8_t i = 0; i < sizeof(sReceiveBuffer); i++) {
     UARTDRV_Receive(sUartHandle, &sReceiveBuffer[i],
                     sizeof(sReceiveBuffer[i]), receiveDone);
   }
-  process_start(&serial_proc, NULL);
 }
 /*---------------------------------------------------------------------------*/
 unsigned int
 dbg_send_bytes(const unsigned char *seq, unsigned int len)
 {
   /* how should we handle this to not get trashed data... */
-  UARTDRV_Transmit(sUartHandle, (uint8_t *)seq, len, transmitDone);
-  transmit_len += len;
+  int i;
+  for(i = 0; i < len; i++) {
+    tx_buf[wpos] = seq[i];
+    if((wpos + 1 % TX_SIZE) == rpos) {
+      overflow++;
+    } else {
+      wpos = (wpos + 1) % TX_SIZE;
+      transmit_len++;
+    }
+  }
+  UARTDRV_Transmit(sUartHandle, (uint8_t *) "poll\n", 5, transmitDone);
+  process_poll(&serial_proc);
   return len;
+}
+
+static void
+process_transmit(void)
+{
+  /* send max 64 per transmit */
+  unsigned char buf[64];
+  int len = 0;
+
+  if(wpos == rpos) {
+    /* nothing to read */
+    return;
+  }
+
+  /* did we wrap? */
+  if(wpos < rpos) {
+    len = TX_SIZE - rpos;
+  } else {
+    /* wpos > rpos */
+    len = wpos - rpos;
+  }
+  if(len > 64) {
+    len = 64;
+  }
+  memcpy(buf, &tx_buf[rpos], len);
+  rpos = (rpos + len) % TX_SIZE;
+
+  UARTDRV_Transmit(sUartHandle, (uint8_t *)buf, len, transmitDone);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -175,8 +226,10 @@ PROCESS_THREAD(serial_proc, ev, data)
 {
   PROCESS_BEGIN();
   while(1) {
-    PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+    PROCESS_WAIT_EVENT();
+    UARTDRV_Transmit(sUartHandle, (uint8_t *) "out\n", 5, transmitDone);
     process_receive();
+    process_transmit();
   }
   PROCESS_END();
 }
