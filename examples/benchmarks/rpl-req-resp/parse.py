@@ -13,8 +13,6 @@ from collections import OrderedDict
 from IPython import embed
 import matplotlib as mpl
 
-TARGET_DIR = "/home/simon/simonduq.github.io/_runs"
-
 pd.set_option('display.max_rows', 48)
 pd.set_option('display.width', None)
 pd.set_option('display.max_columns', None)
@@ -127,7 +125,7 @@ def doParse(dir):
         "topology": [],
     }
 
-    print("\nProcessing %s" %(file))
+#    print("\nProcessing %s" %(file))
     for line in open(file, 'r').readlines():
         # match time, id, module, log; The common format for all log lines
         time, nodeid, level, module, log = parseLine(line)
@@ -137,7 +135,7 @@ def doParse(dir):
             continue
 
         if time - lastPrintedTime >= 60:
-            print("%u, "%(time / 60),end='', flush=True)
+#            print("%u, "%(time / 60),end='', flush=True)
             lastPrintedTime = time
 
         entry = {
@@ -188,7 +186,7 @@ def doParse(dir):
                         nodeEntry["children"] = calculateChildren(n)
                         arrays["topology"].append(nodeEntry)
 
-    print("")
+#    print("")
 
     # Remove last few packets -- might be in-flight when test stopped
     arrays["packets"] = arrays["packets"][0:-10]
@@ -201,35 +199,24 @@ def doParse(dir):
 
     return dfs
 
-def outputStats(file, df, metric, agg, name, metricLabel = None):
+def outputStats(df, metric, agg, name, metricLabel = None):
     perNode = getattr(df.groupby("node")[metric], agg)()
     perTime = getattr(df.groupby([pd.Grouper(freq="2Min")])[metric], agg)()
 
-    file.write("  %s:\n" %(metricLabel if metricLabel != None else metric))
-    file.write("    name: %s\n" %(name))
-    file.write("    per-node:\n")
-    file.write("      x: [%s]\n" %(", ".join(["%u"%x for x in sort(df.node.unique())])))
-    file.write("      y: [%s]\n" %(', '.join(["%.4f"%(x) for x in perNode])))
-    file.write("    per-time:\n")
-    file.write("      x: [%s]\n" %(", ".join(["%u"%x for x in range(0, 2*len(df.groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
-    file.write("      y: [%s]\n" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
+    print("  %s:" %(metricLabel if metricLabel != None else metric))
+    print("    name: %s" %(name))
+    print("    per-node:")
+    print("      x: [%s]" %(", ".join(["%u"%x for x in sort(df.node.unique())])))
+    print("      y: [%s]" %(', '.join(["%.4f"%(x) for x in perNode])))
+    print("    per-time:")
+    print("      x: [%s]" %(", ".join(["%u"%x for x in range(0, 2*len(df.groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
+    print("      y: [%s]" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
 
 def main():
     if len(sys.argv) < 1:
         return
     else:
         dir = sys.argv[1].rstrip('/')
-    date = open(os.path.join(dir, ".started"), 'r').readlines()[0].strip()
-    duration = open(os.path.join(dir, "duration"), 'r').readlines()[0].strip()
-
-    setup = "test-tsch-optims"
-    repository = "simonduq/contiki-ng"
-    branch = "wip/testbed"
-    path = "examples/benchmarks/rpl-req-resp"
-    flags = "{ CONFIG: CONFIG_TSCH_OPTIMS }"
-
-    jobId = dir.split("_")[0]
-    commit = "ae26163dd07b6ebf3a2d0aa6eeec52dd2f0b5768"
 
     # Parse the original log
     dfs = doParse(dir)
@@ -237,57 +224,35 @@ def main():
     if len(dfs) == 0:
         return
 
-    #embed()
-    taskData = yaml.load(open(os.path.join(dir, "task.yml"), "r"))
-
-    outFile = open(os.path.join(TARGET_DIR, "%s.md"%(jobId)), "w")
-    outFile.write("---\n")
-    outFile.write("date: %s\n" %(date))
-    outFile.write("duration: %s\n" %(duration))
-
-    outFile.write("setup: %s\n" %(taskData["setup"]))
-    if "repository" in taskData:
-        outFile.write("repository: %s\n" %(taskData["repository"]))
-    if "branch" in taskData:
-        outFile.write("branch: %s\n" %(taskData["branch"]))
-    if "xpbranch" in taskData:
-        outFile.write("path: %s\n" %(taskData["xppath"]))
-    if "flags" in taskData:
-        outFile.write("flags: %s\n" %(taskData["flags"]))
-
-    outFile.write("commit: %s\n" %(taskData["commit"]))
-    outFile.write("global-stats:\n")
-    outFile.write("  pdr: %.4f\n" %(dfs["packets"]["pdr"].mean()))
-    outFile.write("  loss-rate: %.e\n" %(1-(dfs["packets"]["pdr"].mean()/100)))
-    outFile.write("  packets-sent: %u\n" %(dfs["packets"]["pdr"].count()))
-    outFile.write("  packets-received: %u\n" %(dfs["packets"]["pdr"].sum()/100))
-    outFile.write("  latency: %.4f\n" %(dfs["packets"]["latency"].mean()))
-    outFile.write("  duty-cycle: %.2f\n" %(dfs["energest"]["duty-cycle"].mean()))
-    outFile.write("  channel-utilization: %.2f\n" %(dfs["energest"]["channel-utilization"].mean()))
-    outFile.write("  network-formation-time: %.2f\n" %(networkFormationTime))
-    outFile.write("stats:\n")
+    print("global-stats:")
+    print("  pdr: %.4f" %(dfs["packets"]["pdr"].mean()))
+    print("  loss-rate: %.e" %(1-(dfs["packets"]["pdr"].mean()/100)))
+    print("  packets-sent: %u" %(dfs["packets"]["pdr"].count()))
+    print("  packets-received: %u" %(dfs["packets"]["pdr"].sum()/100))
+    print("  latency: %.4f" %(dfs["packets"]["latency"].mean()))
+    print("  duty-cycle: %.2f" %(dfs["energest"]["duty-cycle"].mean()))
+    print("  channel-utilization: %.2f" %(dfs["energest"]["channel-utilization"].mean()))
+    print("  network-formation-time: %.2f" %(networkFormationTime))
+    print("stats:")
 
     # Output relevant metrics
-    outputStats(outFile, dfs["packets"], "pdr", "mean", "End-to-end PDR (%)")
-    outputStats(outFile, dfs["packets"], "latency", "mean", "Round-trip latency (s)")
+    outputStats(dfs["packets"], "pdr", "mean", "End-to-end PDR (%)")
+    outputStats(dfs["packets"], "latency", "mean", "Round-trip latency (s)")
 
-    outputStats(outFile, dfs["energest"], "duty-cycle", "mean", "Radio duty cycle (%)")
-    outputStats(outFile, dfs["energest"], "channel-utilization", "mean", "Channel utilization (%)")
+    outputStats(dfs["energest"], "duty-cycle", "mean", "Radio duty cycle (%)")
+    outputStats(dfs["energest"], "channel-utilization", "mean", "Channel utilization (%)")
 
-    outputStats(outFile, dfs["ranks"], "rank", "mean", "RPL rank (ETX-128)")
-    outputStats(outFile, dfs["switches"], "pswitch", "count", "RPL parent switches (#)")
-    outputStats(outFile, dfs["trickle"], "trickle", "mean", "RPL Trickle period (min)")
+    outputStats(dfs["ranks"], "rank", "mean", "RPL rank (ETX-128)")
+    outputStats(dfs["switches"], "pswitch", "count", "RPL parent switches (#)")
+    outputStats(dfs["trickle"], "trickle", "mean", "RPL Trickle period (min)")
 
-    outputStats(outFile, dfs["DIS"], "message", "count", "RPL DIS sent (#)", "rpl-dis")
-    outputStats(outFile, dfs["unicast-DIO"], "message", "count", "RPL uDIO sent (#)", "rpl-udio")
-    outputStats(outFile, dfs["multicast-DIO"], "message", "count", "RPL mDIO sent (#)", "rpl-mdio")
-    outputStats(outFile, dfs["DAO"], "message", "count", "RPL DAO sent (#)", "rpl-dao")
-    outputStats(outFile, dfs["DAO-ACK"], "message", "count", "RPL DAO-ACK sent (#)", "rpl-daoack")
+    outputStats(dfs["DIS"], "message", "count", "RPL DIS sent (#)", "rpl-dis")
+    outputStats(dfs["unicast-DIO"], "message", "count", "RPL uDIO sent (#)", "rpl-udio")
+    outputStats(dfs["multicast-DIO"], "message", "count", "RPL mDIO sent (#)", "rpl-mdio")
+    outputStats(dfs["DAO"], "message", "count", "RPL DAO sent (#)", "rpl-dao")
+    outputStats(dfs["DAO-ACK"], "message", "count", "RPL DAO-ACK sent (#)", "rpl-daoack")
 
-    outputStats(outFile, dfs["topology"], "hops", "mean", "RPL hop count (#)")
-    outputStats(outFile, dfs["topology"], "children", "mean", "RPL children count (#)")
-
-    outFile.write("---\n")
-    outFile.write("\n{% include run.md %}\n")
+    outputStats(dfs["topology"], "hops", "mean", "RPL hop count (#)")
+    outputStats(dfs["topology"], "children", "mean", "RPL children count (#)")
 
 main()
