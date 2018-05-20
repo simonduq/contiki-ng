@@ -39,7 +39,7 @@
 
 #define USART_INIT                                                      \
   {                                                                     \
-    USART0,                                   /* USART port */          \
+      USART0,                                   /* USART port */        \
       115200,                                 /* Baud rate */           \
       BSP_SERIAL_APP_TX_LOC,          /* USART Tx pin location number */ \
       BSP_SERIAL_APP_RX_LOC,          /* USART Rx pin location number */ \
@@ -99,7 +99,11 @@ receiveDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_C
 static void
 transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_Count_t aCount)
 {
-  transmit_len = 0;
+  (void) aHandle;
+  (void) aStatus;
+  (void) aData;
+  (void) aCount;
+  transmit_len -= aCount;
 }
 
 static void
@@ -149,12 +153,9 @@ void dbg_init(void)
 unsigned int
 dbg_send_bytes(const unsigned char *seq, unsigned int len)
 {
-  if(transmit_len > 0) {
-    /* doing  transmission... */
-    return 0;
-  }
+  /* how should we handle this to not get trashed data... */
   UARTDRV_Transmit(sUartHandle, (uint8_t *)seq, len, transmitDone);
-  transmit_len = len;
+  transmit_len += len;
   return len;
 }
 /*---------------------------------------------------------------------------*/

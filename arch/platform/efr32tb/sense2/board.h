@@ -64,11 +64,11 @@ extern const struct sensors_sensor button_right_sensor;
 
 #define BSP_SERIAL_APP_RX_PIN                 (1)
 #define BSP_SERIAL_APP_RX_PORT                (gpioPortA)
-#define BSP_SERIAL_APP_RX_LOC                 (0)
+#define BSP_SERIAL_APP_RX_LOC                 (USART_ROUTELOC0_RXLOC_LOC0)
 
 #define BSP_SERIAL_APP_TX_PIN                 (0)
 #define BSP_SERIAL_APP_TX_PORT                (gpioPortA)
-#define BSP_SERIAL_APP_TX_LOC                 (0)
+#define BSP_SERIAL_APP_TX_LOC                 (USART_ROUTELOC0_TXLOC_LOC0)
 
 #define BSP_SERIAL_APP_RTS_PIN                (3)
 #define BSP_SERIAL_APP_RTS_PORT               (gpioPortA)

@@ -53,6 +53,11 @@
 /**
  * \brief Board specific iniatialisation
  */
+
+
+void dbg_init(void);
+void dbg_set_input_handler(int (* handler)(unsigned char c));
+
 void board_init(void);
 /*---------------------------------------------------------------------------*/
 static inline uint64_t
@@ -121,7 +126,9 @@ platform_init_stage_one(void)
   CMU_ClockEnable(cmuClock_LETIMER0, true);
 
 
-  /* debug_uart_init(); */
+  dbg_init();
+  printf("DBG initialized **\n");
+
   leds_init();
   leds_on(LEDS_RED);
 }
@@ -148,7 +155,7 @@ platform_init_stage_three()
   board_init();
   process_start(&sensors_process, NULL);
 
-  /* debug_uart_set_input_handler(serial_line_input_byte); */
+  dbg_set_input_handler(serial_line_input_byte);
   serial_line_init();
 }
 /*---------------------------------------------------------------------------*/
