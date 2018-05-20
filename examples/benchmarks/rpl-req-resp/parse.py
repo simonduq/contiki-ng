@@ -212,8 +212,6 @@ def outputStats(file, df, metric, agg, name, metricLabel = None):
     file.write("    per-time:\n")
     file.write("      x: [%s]\n" %(", ".join(["%u"%x for x in range(0, 2*len(df.groupby([pd.Grouper(freq="2Min")]).mean().index), 2)])))
     file.write("      y: [%s]\n" %(', '.join(["%.4f"%(x) for x in perTime]).replace("nan", "null")))
-    if metricLabel=="rpl-daoack":
-        embed()
 
 def main():
     if len(sys.argv) < 1:
@@ -221,10 +219,15 @@ def main():
     else:
         dir = sys.argv[1].rstrip('/')
     date = open(os.path.join(dir, ".started"), 'r').readlines()[0].strip()
+    duration = open(os.path.join(dir, "duration"), 'r').readlines()[0].strip()
+
+    setup = "test-tsch-optims"
     repository = "simonduq/contiki-ng"
     branch = "wip/testbed"
+    path = "examples/benchmarks/rpl-req-resp"
+    configuration = "CONFIG_TSCH_OPTIMS"
+
     jobId = dir.split("_")[0]
-    label = "Pre-release"
     commit = "ae26163dd07b6ebf3a2d0aa6eeec52dd2f0b5768"
 
     # Parse the original log
@@ -235,10 +238,15 @@ def main():
 
     outFile = open(os.path.join(TARGET_DIR, "%s.md"%(jobId)), "w")
     outFile.write("---\n")
-    outFile.write("label: %s\n" %(label))
     outFile.write("date: %s\n" %(date))
-    outFile.write("repository: %s\n" %(repository))
-    outFile.write("branch: %s\n" %(branch))
+    outFile.write("duration: %s\n" %(duration))
+
+    outFile.write("setup: %s\n" %(setup))
+    #outFile.write("repository: %s\n" %(repository))
+    #outFile.write("branch: %s\n" %(branch))
+    #outFile.write("path: %s\n" %(branch))
+    #outFile.write("configuration: %s\n" %(configuration))
+
     outFile.write("commit: %s\n" %(commit))
     outFile.write("global-stats:\n")
     outFile.write("  pdr: %.4f\n" %(dfs["packets"]["pdr"].mean()))
