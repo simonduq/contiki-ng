@@ -108,10 +108,8 @@ def parseLine(line):
         return time, nodeid, level, module, log
     return None, None, None, None, None
 
-def doParse(dir):
+def doParse(file):
     global networkFormationTime
-
-    file = os.path.join(dir, "logs", "log.txt")
 
     time = None
     lastPrintedTime = 0
@@ -216,10 +214,10 @@ def main():
     if len(sys.argv) < 1:
         return
     else:
-        dir = sys.argv[1].rstrip('/')
+        file = sys.argv[1].rstrip('/')
 
     # Parse the original log
-    dfs = doParse(dir)
+    dfs = doParse(file)
 
     if len(dfs) == 0:
         return
