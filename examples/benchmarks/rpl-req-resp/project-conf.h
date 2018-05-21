@@ -25,6 +25,9 @@
 // #define RPL_CONF_DIO_INTERVAL_DOUBLINGS 6 /* 2^(14+6) ms = 1048.576 s */
 // #define RPL_CONF_PROBING_INTERVAL (60 * CLOCK_SECOND)
 
+/* More for consideratin */
+/* #define RPL_CONF_MAX_RANKINC 0 */
+
 /* TSCH configuration */
 #define TSCH_CONF_RX_WAIT 1000
 #define ORCHESTRA_CONF_UNICAST_PERIOD 7
