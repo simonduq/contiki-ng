@@ -101,8 +101,8 @@ PROCESS_THREAD(app_process, ev, data)
                       UDP_PORT, udp_rx_callback);
 
   if(node_id == ROOT_ID) {
-    /* Wait 2 seconds before starting */
-    etimer_set(&timer, CLOCK_SECOND * 2);
+    /* Wait 5 seconds before starting */
+    etimer_set(&timer, CLOCK_SECOND * 5);
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
 
     /* We are the root, start a DAG */
