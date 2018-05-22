@@ -355,7 +355,7 @@ channel_clear(void)
 static int
 prepare(const void *payload, unsigned short payload_len)
 {
-  uint8_t plen = (uint8_t) payload_len;
+  uint8_t plen = (uint8_t) payload_len + 2;
   uint8_t *data = (uint8_t *)payload;
   int written = 0;
   /* write the length byte */
@@ -465,7 +465,7 @@ read(void *buf, unsigned short bufsize)
   if(status != RAIL_STATUS_NO_ERROR) {
     PRINTF("Failed to get packet details\n");
   } else {
-    length = packetInfo.packetBytes + 1;
+    length = packetInfo.packetBytes - 1;
     PRINTF("EFR32 Radio: received data:%d\n", length);
 
     /* skip length byte */
@@ -485,6 +485,7 @@ read(void *buf, unsigned short bufsize)
   if(packetHandle != RAIL_RX_PACKET_HANDLE_INVALID) {
     /* all ok - exit with release */
     RAIL_ReleaseRxPacket(sRailHandle, packetHandle);
+    /* return bytes without length */
     return length;
   }
   return 0;
