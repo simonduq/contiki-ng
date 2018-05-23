@@ -65,14 +65,15 @@ clock_time_t clock_time(void)
 {
   uint32_t now;
   now = RAIL_GetTime();
-  CORE_ATOMIC_SECTION(
-     if(low_tick > now) {
-       hi_tick++;
-     }
-     low_tick = now;
-  );
-  return (clock_time_t) ((((uint64_t) hi_tick) << 32) |
-                          ((uint64_t) low_tick)) / 1000;
+  /* CORE_ATOMIC_SECTION( */
+  /*    if(low_tick > now) { */
+  /*      hi_tick++; */
+  /*    } */
+  /*    low_tick = now; */
+  /* ); */
+  /* return (clock_time_t) ((((uint64_t) hi_tick) << 32) | */
+  /*                        ((uint64_t) low_tick)) / 1000L; */
+  return (clock_time_t) now / 1000L;
 }
 
 unsigned long clock_seconds(void)

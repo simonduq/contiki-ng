@@ -82,7 +82,6 @@ typedef struct ReceiveFifo_t
 
 
 static ReceiveFifo_t sReceiveFifo;
-static int overflow = 0;
 
 #define TX_SIZE 1024
 static uint8_t tx_buf[TX_SIZE];
@@ -163,25 +162,9 @@ void dbg_init(void)
                     sizeof(sReceiveBuffer[i]), receiveDone);
   }
 }
+
+
 /*---------------------------------------------------------------------------*/
-unsigned int
-dbg_send_bytes(const unsigned char *seq, unsigned int len)
-{
-  /* how should we handle this to not get trashed data... */
-  int i;
-  for(i = 0; i < len; i++) {
-    tx_buf[wpos] = seq[i];
-    if((wpos + 1 % TX_SIZE) == rpos) {
-      overflow++;
-    } else {
-      wpos = (wpos + 1) % TX_SIZE;
-    }
-  }
-  process_poll(&serial_proc);
-  return len;
-}
-
-
 static unsigned char buf[64];
 
 static void
@@ -212,6 +195,22 @@ process_transmit(void)
   txbuzy = 1;
   UARTDRV_Transmit(sUartHandle, (uint8_t *)buf, len, transmitDone);
 }
+
+/*---------------------------------------------------------------------------*/
+unsigned int
+dbg_send_bytes(const unsigned char *seq, unsigned int len)
+{
+  /* how should we handle this to not get trashed data... */
+  int i;
+  /* This will drop bytes if too many printed too soon */
+  for(i = 0; i < len; i++) {
+    tx_buf[wpos] = seq[i];
+    wpos = (wpos + 1) % TX_SIZE;
+  }
+  process_poll(&serial_proc);
+  return len;
+}
+
 /*---------------------------------------------------------------------------*/
 void
 dbg_putchar(const char ch)
