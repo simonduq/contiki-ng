@@ -67,7 +67,7 @@ DEFINE_BUF_QUEUE(EMDRV_UARTDRV_MAX_CONCURRENT_TX_BUFS, sUartTxQueue);
 static UARTDRV_HandleData_t sUartHandleData;
 static UARTDRV_Handle_t     sUartHandle = &sUartHandleData;
 static uint8_t              sReceiveBuffer[2];
-static uint8_t txbuzy = 0;
+static volatile uint8_t     txbuzy = 0;
 static int (* input_handler)(unsigned char c);
 
 typedef struct ReceiveFifo_t
@@ -113,9 +113,7 @@ transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_
   (void) aData;
   (void) aCount;
   txbuzy = 0;
-  if(wpos != rpos) {
-    process_poll(&serial_proc);
-  }
+  process_poll(&serial_proc);
 }
 
 static void
@@ -173,6 +171,11 @@ process_transmit(void)
   /* send max 64 per transmit */
   int len = 0;
 
+  if(txbuzy) {
+    process_poll(&serial_proc);
+    return;
+  }
+
   if(wpos == rpos) {
     /* nothing to read */
     return;
@@ -207,6 +210,7 @@ dbg_send_bytes(const unsigned char *seq, unsigned int len)
     tx_buf[wpos] = seq[i];
     wpos = (wpos + 1) % TX_SIZE;
   }
+  process_transmit();
   process_poll(&serial_proc);
   return len;
 }
@@ -234,3 +238,4 @@ PROCESS_THREAD(serial_proc, ev, data)
   }
   PROCESS_END();
 }
+/*---------------------------------------------------------------------------*/
