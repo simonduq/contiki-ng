@@ -234,7 +234,7 @@ def main():
     print("stats:")
 
     # Output relevant metrics
-    outputStats(dfs["packets"], "pdr", "mean", "End-to-end PDR (%)")
+    outputStats(dfs["packets"], "pdr", "mean", "Round-trip PDR (%)")
     outputStats(dfs["packets"], "latency", "mean", "Round-trip latency (s)")
 
     outputStats(dfs["energest"], "duty-cycle", "mean", "Radio duty cycle (%)")
