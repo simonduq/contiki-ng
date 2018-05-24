@@ -8,7 +8,7 @@
 
 /* Logging */
 #define LOG_CONF_LEVEL_RPL LOG_LEVEL_INFO
-#define LOG_CONF_LEVEL_MAC LOG_LEVEL_DBG
+#define LOG_CONF_LEVEL_MAC LOG_LEVEL_WARN
 #define LOG_CONF_WITH_COMPACT_ADDR 1
 
 /* Provisioning */
