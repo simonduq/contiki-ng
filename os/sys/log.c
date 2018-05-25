@@ -115,7 +115,6 @@ log_6addr_compact_snprint(char *buf, size_t size, const uip_ipaddr_t *ipaddr)
     }
 #endif /* BUILD_WITH_DEPLOYMENT */
   }
-#endif /* NETSTACK_CONF_WITH_IPV6 */
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -125,6 +124,7 @@ log_6addr_compact(const uip_ipaddr_t *ipaddr)
   log_6addr_compact_snprint(buf, sizeof(buf), ipaddr);
   LOG_OUTPUT("%s", buf);
 }
+#endif /* NETSTACK_CONF_WITH_IPV6 */
 /*---------------------------------------------------------------------------*/
 void
 log_lladdr(const linkaddr_t *lladdr)
