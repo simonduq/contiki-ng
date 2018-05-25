@@ -185,7 +185,7 @@ void uip_sr_free_all(void);
 *
 * \param buf The buffer where to write content
 * \param buflen The buffer len
-* \param nbr A pointer to the source routing link
+* \param link A pointer to the source routing link
 * \return Identical to snprintf: number of bytes written excluding ending null
 * byte. A value >= buflen if the buffer was too small.
 */

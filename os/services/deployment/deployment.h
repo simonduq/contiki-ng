@@ -92,8 +92,8 @@ uint16_t deployment_id_from_lladdr(const linkaddr_t *lladdr);
 /**
  * Get node link-layer address from a node ID, from the deployment mapping table
  *
- * \parem lladdr A pointer where to write the link-layer address
- * \parem id The node ID to look up for
+ * \param lladdr A pointer where to write the link-layer address
+ * \param id The node ID to look up for
  */
 void deployment_lladdr_from_id(linkaddr_t *lladdr, uint16_t id);
 
