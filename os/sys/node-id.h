@@ -50,6 +50,6 @@ extern uint16_t node_id;
  */
 void node_id_init(void);
 
-/** @} */
 #endif /* NODE_ID_H_ */
  /** @} */
+ 
