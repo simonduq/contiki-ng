@@ -32,7 +32,8 @@
 * \addtogroup deployment
 * @{
 *
-* \file Per-deployment MAC <-> nodeid mapping
+* \file
+     Per-deployment MAC <-> nodeid mapping
 * \author Simon Duquennoy <simon.duquennoy@ri.se>
 *
 */
@@ -58,7 +59,7 @@ struct id_mac {
  * A table of struct id_mac that provides ID-MAC mapping for a deployment.
  * Example with four nodes:
  * In configuration file:
- *  #define DEPLOYMENT_MAPPING custom_array
+ *  \#define DEPLOYMENT_MAPPING custom_array
  * In a .c file:
  *  const struct id_mac custom_array[] = {
       { 1, {{0x00,0x12,0x4b,0x00,0x06,0x0d,0xb6,0x14}}},

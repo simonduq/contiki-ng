@@ -34,7 +34,8 @@
 * \addtogroup node-id
 * @{
 *
-* \file Node-id (simple 16-bit identifiers) handling
+* \file
+*    Node-id (simple 16-bit identifiers) handling
 * \author Simon Duquennoy <simon.duquennoy@ri.se>
 *
 */
