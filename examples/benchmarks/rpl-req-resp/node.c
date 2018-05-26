@@ -116,17 +116,17 @@ PROCESS_THREAD(app_process, ev, data)
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
       etimer_reset(&timer);
 
-      if(deployment_node_cont() > NETSTACK_MAX_ROUTE_ENTRIES) {
+      if(deployment_node_count() > NETSTACK_MAX_ROUTE_ENTRIES) {
         LOG_WARN("Not enough routing entries for deployment: %u/%u\n",
-                  deployment_node_cont(), NETSTACK_MAX_ROUTE_ENTRIES);
+                  deployment_node_count(), NETSTACK_MAX_ROUTE_ENTRIES);
       }
-      LOG_INFO("Node count: %u/%u\n", uip_sr_num_nodes(), deployment_node_cont());
+      LOG_INFO("Node count: %u/%u\n", uip_sr_num_nodes(), deployment_node_count());
 
-    } while(uip_sr_num_nodes() < deployment_node_cont());
+    } while(uip_sr_num_nodes() < deployment_node_count());
 
     /* Now start requesting nodes at random (and stop if nodes disconnect) */
     etimer_set(&timer, SEND_INTERVAL);
-    while(uip_sr_num_nodes() == deployment_node_cont()) {
+    while(uip_sr_num_nodes() == deployment_node_count()) {
       static unsigned count = 0;
       uint16_t dest_id;
       struct app_payload message;
@@ -136,7 +136,7 @@ PROCESS_THREAD(app_process, ev, data)
 
       /* Select a destination at random. Iterate until we do not select ourselve */
       do {
-        dest_id = deployment_id_from_index(random_rand() % deployment_node_cont());
+        dest_id = deployment_id_from_index(random_rand() % deployment_node_count());
       } while(dest_id == ROOT_ID);
       /* Prefix was already set, set IID now */
       deployment_iid_from_id(&dest_ipaddr, dest_id);

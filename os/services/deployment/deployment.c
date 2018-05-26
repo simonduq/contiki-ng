@@ -73,7 +73,7 @@ deployment_init(void)
 }
 /*---------------------------------------------------------------------------*/
 int
-deployment_node_cont(void)
+deployment_node_count(void)
 {
   return node_count;
 }
@@ -130,7 +130,7 @@ deployment_iid_from_id(uip_ipaddr_t *ipaddr, uint16_t id)
 uint16_t
 deployment_id_from_index(uint16_t index)
 {
-  if(index < deployment_node_cont()) {
+  if(index < deployment_node_count()) {
     return DEPLOYMENT_MAPPING[index].id;
   } else {
     return 0;

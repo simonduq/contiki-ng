@@ -80,7 +80,7 @@ void deployment_init(void);
  *
  * \return The number of nodes in the deployment
  */
-int deployment_node_cont(void);
+int deployment_node_count(void);
 
 /**
  * Get node ID from a link-layer address, from the deployment mapping table
