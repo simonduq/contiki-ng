@@ -75,14 +75,14 @@ udp_rx_callback(struct simple_udp_connection *c,
   count &= 0x7fffffff;
 
   if(is_response) {
-    LOG_INFO("Received response %u from ", count);
+    LOG_INFO("Received response %"PRIu32" from ", count);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
   } else {
-    LOG_INFO("Received request %u from ", count);
+    LOG_INFO("Received request %"PRIu32" from ", count);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
-    LOG_INFO("Sending response %u to ", count);
+    LOG_INFO("Sending response %"PRIu32" to ", count);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
     /* Set most significant bit to signal a response */
@@ -143,7 +143,7 @@ PROCESS_THREAD(app_process, ev, data)
       deployment_iid_from_id(&dest_ipaddr, dest_id);
 
       /* Request: most significant bit not unset */
-      LOG_INFO("Sending request %u to ", count);
+      LOG_INFO("Sending request %"PRIu32" to ", count);
       LOG_INFO_6ADDR(&dest_ipaddr);
       LOG_INFO_("\n");
       simple_udp_sendto(&udp_conn, &count, sizeof(count), &dest_ipaddr);
