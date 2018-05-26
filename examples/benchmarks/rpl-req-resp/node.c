@@ -51,10 +51,6 @@
 #define SEND_INTERVAL (CLOCK_SECOND)
 
 static struct simple_udp_connection udp_conn;
-struct app_payload {
-  unsigned id;
-  unsigned is_request;
-};
 
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
@@ -70,22 +66,28 @@ udp_rx_callback(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  struct app_payload message;
-  memcpy(&message, data, sizeof(message));
+  uint32_t count;
+  int is_response;
+  /* Copy and parse payload */
+  memcpy(&count, data, sizeof(uint32_t));
+  /* Most significant bit: request (0) / response (1) */
+  is_response = count & 0x80000000;
+  count &= 0x7fffffff;
 
-  if(message.is_request) {
-    LOG_INFO("Received request %u from ", message.id);
+  if(is_response) {
+    LOG_INFO("Received response %u from ", count);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
-    message.is_request = 0;
-    LOG_INFO("Sending response %u to ", message.id);
-    LOG_INFO_6ADDR(sender_addr);
-    LOG_INFO_("\n");
-    simple_udp_sendto(&udp_conn, &message, sizeof(message), sender_addr);
   } else {
-    LOG_INFO("Received response %u from ", message.id);
+    LOG_INFO("Received request %u from ", count);
     LOG_INFO_6ADDR(sender_addr);
     LOG_INFO_("\n");
+    LOG_INFO("Sending response %u to ", count);
+    LOG_INFO_6ADDR(sender_addr);
+    LOG_INFO_("\n");
+    /* Set most significant bit to signal a response */
+    count |= 0x80000000;
+    simple_udp_sendto(&udp_conn, &count, sizeof(count), sender_addr);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -127,9 +129,8 @@ PROCESS_THREAD(app_process, ev, data)
     /* Now start requesting nodes at random (and stop if nodes disconnect) */
     etimer_set(&timer, SEND_INTERVAL);
     while(uip_sr_num_nodes() == deployment_node_count()) {
-      static unsigned count = 0;
+      static uint32_t count = 0;
       uint16_t dest_id;
-      struct app_payload message;
 
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
       etimer_reset(&timer);
@@ -141,12 +142,11 @@ PROCESS_THREAD(app_process, ev, data)
       /* Prefix was already set, set IID now */
       deployment_iid_from_id(&dest_ipaddr, dest_id);
 
-      message.id = count;
-      message.is_request = 1;
-      LOG_INFO("Sending request %u to ", message.id);
+      /* Request: most significant bit not unset */
+      LOG_INFO("Sending request %u to ", count);
       LOG_INFO_6ADDR(&dest_ipaddr);
       LOG_INFO_("\n");
-      simple_udp_sendto(&udp_conn, &message, sizeof(message), &dest_ipaddr);
+      simple_udp_sendto(&udp_conn, &count, sizeof(count), &dest_ipaddr);
       count++;
     }
   }
