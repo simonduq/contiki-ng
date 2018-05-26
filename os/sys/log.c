@@ -97,22 +97,18 @@ log_6addr_compact_snprint(char *buf, size_t size, const uip_ipaddr_t *ipaddr)
   if(ipaddr == NULL) {
     return snprintf(buf, size, "6A-NULL");
   } else {
+    char *prefix = NULL;
+    if(uip_is_addr_mcast(ipaddr)) {
+      prefix = "6M";
+    } else if(uip_is_addr_linklocal(ipaddr)) {
+      prefix = "6L";
+    } else {
+      prefix = "6G";
+    }
 #if BUILD_WITH_DEPLOYMENT
-    if(uip_is_addr_mcast(ipaddr)) {
-      return snprintf(buf, size, "6M-%03u", deployment_id_from_iid(ipaddr));
-    } else if(uip_is_addr_linklocal(ipaddr)) {
-      return snprintf(buf, size, "6L-%03u", deployment_id_from_iid(ipaddr));
-    } else {
-      return snprintf(buf, size, "6G-%03u", deployment_id_from_iid(ipaddr));
-    }
+    return snprintf(buf, size, "%s-%03u", prefix, deployment_id_from_iid(ipaddr));
 #else /* BUILD_WITH_DEPLOYMENT */
-    if(uip_is_addr_mcast(ipaddr)) {
-      return snprintf(buf, size, "6M-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
-    } else if(uip_is_addr_linklocal(ipaddr)) {
-      return snprintf(buf, size, "6L-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
-    } else {
-      return snprintf(buf, size, "6G-%04x", UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
-    }
+    return snprintf(buf, size, "%s-%04x", prefix, UIP_HTONS(ipaddr->u16[sizeof(uip_ipaddr_t)/2-1]));
 #endif /* BUILD_WITH_DEPLOYMENT */
   }
 }
