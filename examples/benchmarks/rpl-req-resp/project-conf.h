@@ -3,7 +3,11 @@
 
 /* Testbed configuration */
 #define ROOT_ID 1
+#if CONTIKI_TARGET_COOJA
+#define DEPLOYMENT_MAPPING deployment_cooja8
+#else /* CONTIKI_TARGET_COOJA */
 #define DEPLOYMENT_MAPPING deployment_sics_firefly
+#endif /* CONTIKI_TARGET_COOJA */
 #define IEEE802154_CONF_PANID 0x8921
 
 /* Logging */
