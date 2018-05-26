@@ -8,7 +8,7 @@ notifications:
 before_install:
   # Environment setup before test script
   - export CNG_HOST_PATH=`pwd`
-  - export DOCKER_IMG='simonduq/contiki-ng:latest'
+  - export DOCKER_IMG='simonduq/contiki-ng:upgrade-arm-gcc'
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
   - docker pull $DOCKER_IMG
   - ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
