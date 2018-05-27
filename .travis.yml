@@ -7,7 +7,7 @@ notifications:
 # Declare cache directory for docker image cache
 cache:
   directories:
-    - $(dirname $DOCKER_CACHE_FILE)
+    - ~/docker
 
 # Environment setup before test script
 before_install:
@@ -16,7 +16,8 @@ before_install:
   #- if [[ -e $DOCKER_CACHE_FILE ]]; then gunzip -c $DOCKER_CACHE_FILE | docker load ; fi
   # Build docker image
   #- docker build tools/docker -t $DOCKER_IMG
-  - mkdir -p $(dirname $DOCKER_CACHE_FILE)
+  #- mkdir -p $(dirname $DOCKER_CACHE_FILE)
+  - mkdir -p ~/docker
   - if [[ -e $DOCKER_CACHE_FILE ]]; then cat $DOCKER_CACHE_FILE ; fi
   - echo "Test" > $DOCKER_CACHE_FILE
   #- docker pull $DOCKER_IMG
