@@ -20,12 +20,12 @@ before_install:
   #- mkdir -p ~/docker
   #- if [[ -f $DOCKER_CACHE ]]; then echo "exists."; cat $DOCKER_CACHE ; fi
   #- ls ~
-  - ls ~/docker -kh
+  - ls ~/docker -lh
   #- echo "Test" > $DOCKER_CACHE
   #- docker pull $DOCKER_IMG
   # Cache all layers
-  - docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) > $DOCKER_CACHE
-  - ls ~/docker -kh
+  #- docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) > $DOCKER_CACHE
+  #- ls ~/docker -lh
   # Build Cooja
   #- ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
 
