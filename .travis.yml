@@ -19,7 +19,7 @@ before_install:
       docker pull $DOCKER_IMG;
     else
       echo "Docker image changed, build from Dockerfile... (will take minutes)"
-      docker build --quiet tools/docker -t $DOCKER_IMG;
+      travis_wait docker build --quiet tools/docker -t $DOCKER_IMG;
       if [ $TRAVIS_SECURE_ENV_VARS == true ] && [ $TRAVIS_PULL_REQUEST == false ] && [ $TRAVIS_BRANCH == 'develop' ]; then
         echo "This build is for an update of branch develop. Push image to Dockerhub"
         echo $DOCKERHUB_PASSWD | docker login --username contiker --password-stdin
