@@ -7,7 +7,7 @@ notifications:
 # Declare cache directory for docker image cache
 cache:
   directories:
-    - $DOCKER_CACHE_DIR
+    - $(dirname $DOCKER_CACHE_FILE)
 
 # Environment setup before test script
 before_install:
@@ -15,10 +15,12 @@ before_install:
   # Load cached docker images
   - if [[ -e $DOCKER_CACHE_FILE ]]; then gunzip -c $DOCKER_CACHE_FILE | docker load ; fi
   # Build docker image
-  - docker build tools/docker -t $DOCKER_IMG
+  #- docker build tools/docker -t $DOCKER_IMG
+  - mkdir -p $(dirname $DOCKER_CACHE_FILE)
+  - if [[ -e $(dirname $DOCKER_CACHE_FILE)/toto ]]; then cat $(dirname $DOCKER_CACHE_FILE)/toto ; fi
+  - echo "Test" > $(dirname $DOCKER_CACHE_FILE)/toto
   #- docker pull $DOCKER_IMG
   # Cache all layers
-  - mkdir -p DOCKER_CACHE_DIR
   - docker save $DOCKER_IMG | gzip > $DOCKER_CACHE_FILE
   # Build Cooja
   - ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
@@ -34,7 +36,6 @@ env:
   # Global environment variables, i.e., set for all builds
   global:
     - DOCKER_IMG='simonduq/contiki-ng:latest'
-    - DOCKER_CACHE_DIR='~/docker'
     - DOCKER_CACHE_FILE='~/docker/cache.tgz'
     - CNG_HOST_PATH=`pwd`
   # Each line in the 'matrix' triggers a separate Travis build
