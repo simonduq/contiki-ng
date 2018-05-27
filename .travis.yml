@@ -19,6 +19,8 @@ before_install:
   #- mkdir -p $(dirname $DOCKER_CACHE_FILE)
   - mkdir -p ~/docker
   - if [[ -f $DOCKER_CACHE_FILE ]]; then echo "exists."; cat $DOCKER_CACHE_FILE ; fi
+  - ls
+  - ls docker
   - echo "Test" > $DOCKER_CACHE_FILE
   #- docker pull $DOCKER_IMG
   # Cache all layers
