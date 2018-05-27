@@ -7,35 +7,40 @@ notifications:
 # Declare cache directory for docker image cache
 cache:
   directories:
-    - $DOCKER_CACHE_DIR
+    - ~/docker
 
 # Environment setup before test script
 before_install:
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
   # Load cached docker images
-  - if [[ -e $DOCKER_CACHE_FILE ]]; then gunzip -c $DOCKER_CACHE_FILE | docker load ; fi
+  - if [[ -f $DOCKER_CACHE ]]; then docker load < $DOCKER_CACHE; fi
   # Build docker image
   - docker build tools/docker -t $DOCKER_IMG
+  - mkdir -p $(dirname $DOCKER_CACHE)
+  #- mkdir -p ~/docker
+  #- if [[ -f $DOCKER_CACHE ]]; then echo "exists."; cat $DOCKER_CACHE ; fi
+  #- ls ~
+  - ls ~/docker -kh
+  #- echo "Test" > $DOCKER_CACHE
   #- docker pull $DOCKER_IMG
   # Cache all layers
-  - mkdir -p DOCKER_CACHE_DIR
-  - docker save $DOCKER_IMG | gzip > $DOCKER_CACHE_FILE
+  - docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) > $DOCKER_CACHE
+  - ls ~/docker -kh
   # Build Cooja
-  - ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
+  #- ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
 
 # The test script for each build
 script:
-  - docker run --privileged -v $CNG_HOST_PATH:/home/user/contiki-ng -ti $DOCKER_IMG bash --login -c "make -C tests/??-$TEST_NAME";
+  #- docker run --privileged -v $CNG_HOST_PATH:/home/user/contiki-ng -ti $DOCKER_IMG bash --login -c "make -C tests/??-$TEST_NAME";
   # Check outcome of the test
-  - $CNG_HOST_PATH/tests/check-test.sh $CNG_HOST_PATH/tests/??-$TEST_NAME; exit $?;
+  #- $CNG_HOST_PATH/tests/check-test.sh $CNG_HOST_PATH/tests/??-$TEST_NAME; exit $?;
 
 # Environment variables
 env:
   # Global environment variables, i.e., set for all builds
   global:
-    - DOCKER_IMG='simonduq/contiki-ng:latest'
-    - DOCKER_CACHE_DIR='~/docker'
-    - DOCKER_CACHE_FILE='~/docker/cache.tgz'
+    - DOCKER_IMG=simonduq/contiki-ng:latest
+    - DOCKER_CACHE=~/docker/cache.tgz
     - CNG_HOST_PATH=`pwd`
   # Each line in the 'matrix' triggers a separate Travis build
   matrix:
