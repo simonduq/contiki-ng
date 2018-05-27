@@ -13,7 +13,7 @@ cache:
 before_install:
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
   # Load cached docker images
-  - if [[ -f $DOCKER_CACHE ]]; then docker load < $DOCKER_CACHE; fi
+  - if [[ -f $DOCKER_CACHE ]]; then gunzip -c $DOCKER_CACHE | docker load; fi
   # Build docker image
   - docker build tools/docker -t $DOCKER_IMG
   - mkdir -p $(dirname $DOCKER_CACHE)
@@ -21,6 +21,7 @@ before_install:
   #- if [[ -f $DOCKER_CACHE ]]; then echo "exists."; cat $DOCKER_CACHE ; fi
   #- ls ~
   - ls ~/docker -lh
+  - docker images
   #- echo "Test" > $DOCKER_CACHE
   #- docker pull $DOCKER_IMG
   # Cache all layers
