@@ -24,7 +24,7 @@ before_install:
   #- echo "Test" > $DOCKER_CACHE
   #- docker pull $DOCKER_IMG
   # Cache all layers
-  #- docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) > $DOCKER_CACHE
+  - docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) | gzip > $DOCKER_CACHE
   #- ls ~/docker -lh
   # Build Cooja
   #- ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
@@ -40,7 +40,7 @@ env:
   # Global environment variables, i.e., set for all builds
   global:
     - DOCKER_IMG=simonduq/contiki-ng:latest
-    - DOCKER_CACHE=~/docker/cache.tgz
+    - DOCKER_CACHE=~/docker/cache2.tgz
     - CNG_HOST_PATH=`pwd`
   # Each line in the 'matrix' triggers a separate Travis build
   matrix:
