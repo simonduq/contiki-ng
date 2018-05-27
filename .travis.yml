@@ -21,7 +21,7 @@ before_install:
   - echo "Test" > $(dirname $DOCKER_CACHE_FILE)/toto
   #- docker pull $DOCKER_IMG
   # Cache all layers
-  - docker save $DOCKER_IMG | gzip > $DOCKER_CACHE_FILE
+  #- docker save $DOCKER_IMG | gzip > $DOCKER_CACHE_FILE
   # Build Cooja
   #- ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
 
