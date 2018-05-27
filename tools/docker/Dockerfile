@@ -1,7 +1,7 @@
 FROM 32bit/ubuntu:16.04
 
 # Tools
-RUN apt-get update && \
+RUN toto apt-get update && \
   apt-get install -y --no-install-recommends \
   build-essential doxygen git wget unzip python-serial \
   default-jdk ant srecord iputils-tracepath rlwrap \
