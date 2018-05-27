@@ -13,11 +13,13 @@ cache:
 before_install:
   - git branch
   - git remote -v
+  - ls ~/docker -lh
+  - docker images
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
   # Load cached docker images
   - if [[ -f $DOCKER_CACHE ]]; then gunzip -c $DOCKER_CACHE | docker load; fi
   # Build docker image
-  - docker build tools/docker -t $DOCKER_IMG
+  #- docker build tools/docker -t $DOCKER_IMG
   - mkdir -p $(dirname $DOCKER_CACHE)
   #- mkdir -p ~/docker
   #- if [[ -f $DOCKER_CACHE ]]; then echo "exists."; cat $DOCKER_CACHE ; fi
