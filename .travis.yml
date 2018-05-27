@@ -11,6 +11,8 @@ cache:
 
 # Environment setup before test script
 before_install:
+  - git branch
+  - git remote -v
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
   # Load cached docker images
   - if [[ -f $DOCKER_CACHE ]]; then gunzip -c $DOCKER_CACHE | docker load; fi
@@ -26,6 +28,8 @@ before_install:
   #- docker pull $DOCKER_IMG
   # Cache all layers
   - docker save $DOCKER_IMG $(docker history -q $DOCKER_IMG) | gzip > $DOCKER_CACHE
+  - ls ~/docker -lh
+  - docker images
   #- ls ~/docker -lh
   # Build Cooja
   #- ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
