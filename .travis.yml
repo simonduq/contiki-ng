@@ -21,7 +21,7 @@ before_install:
   - if [[ -f $DOCKER_CACHE_FILE ]]; then echo "exists."; cat $DOCKER_CACHE_FILE ; fi
   - ls ~
   - ls ~/docker
-  - echo "Test" > ~/docker/test
+  - echo "Test" > ~/docker/cache.tgz
   #- docker pull $DOCKER_IMG
   # Cache all layers
   #- docker save $DOCKER_IMG | gzip > $DOCKER_CACHE_FILE
@@ -39,7 +39,7 @@ env:
   # Global environment variables, i.e., set for all builds
   global:
     - DOCKER_IMG=simonduq/contiki-ng:latest
-    - DOCKER_CACHE_FILE=/home/travis/docker/cache.tgz
+    - DOCKER_CACHE_FILE=~/docker/cache.tgz
     - CNG_HOST_PATH=`pwd`
   # Each line in the 'matrix' triggers a separate Travis build
   matrix:
