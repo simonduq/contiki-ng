@@ -10,7 +10,8 @@ before_install:
   - export CNG_HOST_PATH=`pwd`
   - export DOCKER_IMG='simonduq/contiki-ng:latest'
   - sudo chgrp -hR 1000 $CNG_HOST_PATH
-  - docker pull $DOCKER_IMG
+  #- docker pull $DOCKER_IMG
+  - docker build tools/docker -t $DOCKER_IMG
   - ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar
 
 script: # The test script for each build.
