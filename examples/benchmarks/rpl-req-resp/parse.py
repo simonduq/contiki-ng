@@ -124,6 +124,8 @@ def doParse(file):
     }
 
 #    print("\nProcessing %s" %(file))
+    # Filter out non-printable chars from log file
+    os.system("cat %s | tr -dc '[:print:]\n\t' | sponge %s" %(file, file))
     for line in open(file, 'r').readlines():
         # match time, id, module, log; The common format for all log lines
         time, nodeid, level, module, log = parseLine(line)
@@ -141,48 +143,52 @@ def doParse(file):
             "node": nodeid,
         }
 
-        if module == "App":
-            ret = parseApp(log)
-            if(ret != None):
-                entry.update(ret)
-                if(ret['event'] == 'send' and ret['type'] == 'request'):
-                    # populate series of sent requests
-                    entry['pdr'] = 0.
-                    arrays["packets"].append(entry)
-                    if networkFormationTime == None:
-                        networkFormationTime = time
-                elif(ret['event'] == 'recv' and ret['type'] == 'response'):
-                    # update sent request series with latency and PDR
-                    txElement = [x for x in arrays["packets"] if x['event']=='send' and x['id']==ret['id']][0]
-                    txElement['latency'] = time - txElement['timestamp'].seconds
-                    txElement['pdr'] = 100.
+        try:
+            if module == "App":
+                ret = parseApp(log)
+                if(ret != None):
+                    entry.update(ret)
+                    if(ret['event'] == 'send' and ret['type'] == 'request'):
+                        # populate series of sent requests
+                        entry['pdr'] = 0.
+                        arrays["packets"].append(entry)
+                        if networkFormationTime == None:
+                            networkFormationTime = time
+                    elif(ret['event'] == 'recv' and ret['type'] == 'response'):
+                        # update sent request series with latency and PDR
+                        txElement = [x for x in arrays["packets"] if x['event']=='send' and x['id']==ret['id']][0]
+                        txElement['latency'] = time - txElement['timestamp'].seconds
+                        txElement['pdr'] = 100.
 
-        if module == "Energest":
-            ret = parseEnergest(log)
-            if(ret != None):
-                entry.update(ret)
-                arrays["energest"].append(entry)
+            if module == "Energest":
+                ret = parseEnergest(log)
+                if(ret != None):
+                    entry.update(ret)
+                    arrays["energest"].append(entry)
 
-        if module == "RPL":
-            ret = parseRPL(log)
-            if(ret != None):
-                entry.update(ret)
-                if(ret['event'] == 'rank'):
-                    arrays["ranks"].append(entry)
-                    arrays["trickle"].append(entry)
-                elif(ret['event'] == 'switch'):
-                    arrays["switches"].append(entry)
-                elif(ret['event'] == 'sending'):
-                    if not ret['message'] in arrays:
-                        arrays[ret['message']] = []
-                    arrays[ret['message']].append(entry)
-                elif(ret['event'] == 'topology'):
-                    for n in parents.keys():
-                        nodeEntry = entry.copy()
-                        nodeEntry["node"] = n
-                        nodeEntry["hops"] = calculateHops(n)
-                        nodeEntry["children"] = calculateChildren(n)
-                        arrays["topology"].append(nodeEntry)
+            if module == "RPL":
+                ret = parseRPL(log)
+                if(ret != None):
+                    entry.update(ret)
+                    if(ret['event'] == 'rank'):
+                        arrays["ranks"].append(entry)
+                        arrays["trickle"].append(entry)
+                    elif(ret['event'] == 'switch'):
+                        arrays["switches"].append(entry)
+                    elif(ret['event'] == 'sending'):
+                        if not ret['message'] in arrays:
+                            arrays[ret['message']] = []
+                        arrays[ret['message']].append(entry)
+                    elif(ret['event'] == 'topology'):
+                        for n in parents.keys():
+                            nodeEntry = entry.copy()
+                            nodeEntry["node"] = n
+                            nodeEntry["hops"] = calculateHops(n)
+                            nodeEntry["children"] = calculateChildren(n)
+                            arrays["topology"].append(nodeEntry)
+        except: # typical exception: failed str conversion to int, due to lossy logs
+            print("Exception: %s" %(str(sys.exc_info()[0])))
+            continue
 
 #    print("")
 
