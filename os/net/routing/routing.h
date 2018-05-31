@@ -172,6 +172,13 @@ struct routing_driver {
    * \param route The route that will be dropped after this function returns
    */
   void (* drop_route)(uip_ds6_route_t *route);
+  /**
+   * Returns the total number of nodes in the routing or links table, i.e.
+   * the total number of nodes reachable at the root. Includes the root itself.
+   *
+   * \return The number of nodes in the routing/link table.
+   */
+  int (* reachable_nodes_count)(void);
 };
 
 #endif /* ROUTING_H_ */

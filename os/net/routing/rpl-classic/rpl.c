@@ -419,6 +419,20 @@ get_root_ipaddr(uip_ipaddr_t *ipaddr)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
+int
+reachable_nodes_count(void)
+{
+  rpl_dag_t *dag = rpl_get_any_dag();
+  if(dag != NULL) {
+    if(RPL_IS_STORING(dag->instance)) {
+      return uip_ds6_route_num_routes() + 1; /* Add 1 for the root itselft */
+    } else if(RPL_IS_NON_STORING(dag->instance)) {
+      return uip_sr_num_nodes();
+    }
+  }
+  return 0;
+}
+/*---------------------------------------------------------------------------*/
 const struct routing_driver rpl_classic_driver = {
   "RPL Classic",
   init,
@@ -440,6 +454,7 @@ const struct routing_driver rpl_classic_driver = {
   rpl_link_callback,
   rpl_ipv6_neighbor_callback,
   drop_route,
+  reachable_nodes_count,
 };
 /*---------------------------------------------------------------------------*/
 

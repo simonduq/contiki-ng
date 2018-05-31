@@ -241,6 +241,12 @@ rpl_get_leaf_only(void)
   return rpl_leaf_only;
 }
 /*---------------------------------------------------------------------------*/
+int
+reachable_nodes_count(void)
+{
+  return uip_sr_num_nodes();
+}
+/*---------------------------------------------------------------------------*/
 const struct routing_driver rpl_lite_driver = {
   "RPL Lite",
   init,
@@ -262,6 +268,7 @@ const struct routing_driver rpl_lite_driver = {
   rpl_link_callback,
   neighbor_state_changed,
   drop_route,
+  reachable_nodes_count,
 };
 /*---------------------------------------------------------------------------*/
 
