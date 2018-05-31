@@ -122,13 +122,13 @@ PROCESS_THREAD(app_process, ev, data)
         LOG_WARN("Not enough routing entries for deployment: %u/%u\n",
                   deployment_node_count(), NETSTACK_MAX_ROUTE_ENTRIES);
       }
-      LOG_INFO("Node count: %u/%u\n", uip_sr_num_nodes(), deployment_node_count());
+      LOG_INFO("Node count: %u/%u\n", NETSTACK_ROUTING.reachable_nodes_count(), deployment_node_count());
 
-    } while(uip_sr_num_nodes() < deployment_node_count());
+    } while(NETSTACK_ROUTING.reachable_nodes_count() < deployment_node_count());
 
     /* Now start requesting nodes at random (and stop if nodes disconnect) */
     etimer_set(&timer, SEND_INTERVAL);
-    while(uip_sr_num_nodes() == deployment_node_count()) {
+    while(NETSTACK_ROUTING.reachable_nodes_count() == deployment_node_count()) {
       static uint32_t count = 0;
       uint16_t dest_id;
 
