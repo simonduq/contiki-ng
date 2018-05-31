@@ -1,4 +1,5 @@
 #!/bin/bash
+source ../utils.sh
 
 # Contiki directory
 CONTIKI=$1
@@ -6,9 +7,6 @@ CONTIKI=$1
 BASENAME=01-native-ping
 
 IPADDR=fd00::302:304:506:708
-
-echo "Enabling IPv6"
-sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
 
 # Starting Contiki-NG native node
 echo "Starting native node"
@@ -25,7 +23,7 @@ STATUS=${PIPESTATUS[0]}
 
 echo "Closing native node"
 sleep 2
-pgrep hello-world | sudo xargs kill -9
+kill_bg $CPID
 
 if [ $STATUS -eq 0 ] ; then
   cp $BASENAME.log $BASENAME.testlog

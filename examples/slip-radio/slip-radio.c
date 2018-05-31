@@ -143,7 +143,7 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
       packetbuf_clear();
       pos = packetutils_deserialize_atts(&data[3], len - 3);
       if(pos < 0) {
-        LOG_ERR("slip-radio: illegal packet attributes\n");
+        LOG_ERR("illegal packet attributes\n");
         return 1;
       }
       pos += 3;
@@ -154,7 +154,7 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
       memcpy(packetbuf_dataptr(), &data[pos], len);
       packetbuf_set_datalen(len);
 
-      LOG_DBG("slip-radio: sending %u (%d bytes)\n",
+      LOG_DBG("sending %u (%d bytes)\n",
               data[2], packetbuf_datalen());
 
       /* parse frame before sending to get addresses, etc. */
@@ -167,19 +167,57 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
       }
 
       return 1;
+    } else if(data[1] == 'V') {
+      int type = ((uint16_t)data[2] << 8) | data[3];
+      int value = ((uint16_t)data[4] << 8) | data[5];
+      int param = type; /* packetutils_to_radio_param(type); */
+      if(param < 0) {
+        printf("radio: unknown parameter %d (can not set to %d)\n", type, value);
+      } else {
+        if(param == RADIO_PARAM_RX_MODE) {
+          printf("radio: setting rxmode to 0x%x\n", value);
+        } else if(param == RADIO_PARAM_PAN_ID) {
+          printf("radio: setting pan id to 0x%04x\n", value);
+        } else if(param == RADIO_PARAM_CHANNEL) {
+          printf("radio: setting channel: %u\n", value);
+        } else {
+          printf("radio: setting param %d to %d (0x%02x)\n", param, value, value);
+        }
+        NETSTACK_RADIO.set_value(param, value);
+      }
+      return 1;
     }
-  } else if(uip_buf[0] == '?') {
-    LOG_DBG("Got request message of type %c\n", uip_buf[1]);
+  } else if(data[0] == '?') {
+    LOG_DBG("Got request message of type %c\n", data[1]);
     if(data[1] == 'M') {
       /* this is just a test so far... just to see if it works */
       uip_buf[0] = '!';
       uip_buf[1] = 'M';
-      for(i = 0; i < 8; i++) {
+      for(i = 0; i < UIP_LLADDR_LEN; i++) {
         uip_buf[2 + i] = uip_lladdr.addr[i];
       }
       uip_len = 10;
       cmd_send(uip_buf, uip_len);
       return 1;
+    } else if(data[1] == 'V') {
+      /* ask the radio about the specific parameter and send it back... */
+      int type = ((uint16_t)data[2] << 8) | data[3];
+      int value;
+      int param = type; /* packetutils_to_radio_param(type); */
+      if(param < 0) {
+        printf("radio: unknown parameter %d\n", type);
+      }
+
+      NETSTACK_RADIO.get_value(param, &value);
+
+      uip_buf[0] = '!';
+      uip_buf[1] = 'V';
+      uip_buf[2] = type >> 8;
+      uip_buf[3] = type & 0xff;
+      uip_buf[4] = value >> 8;
+      uip_buf[5] = value & 0xff;
+      uip_len = 6;
+      cmd_send(uip_buf, uip_len);
     }
   }
   return 0;
@@ -188,8 +226,11 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
 static void
 slip_input_callback(void)
 {
-  LOG_DBG("SR-SIN: %u '%c%c'\n", uip_len, uip_buf[0], uip_buf[1]);
-  cmd_input(uip_buf, uip_len);
+  LOG_DBG("SR-SIN: %u '%c%c'\n", uip_len,
+          uip_buf[UIP_LLH_LEN], uip_buf[UIP_LLH_LEN + 1]);
+  if(!cmd_input(&uip_buf[UIP_LLH_LEN], uip_len)) {
+    cmd_send((uint8_t *)"EUnknown command", 16);
+  }
   uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
@@ -214,7 +255,7 @@ PROCESS_THREAD(slip_radio_process, ev, data)
 #ifdef SLIP_RADIO_CONF_SENSORS
   SLIP_RADIO_CONF_SENSORS.init();
 #endif
-  printf("Slip Radio started...\n");
+  LOG_INFO("Slip Radio started\n");
 
   etimer_set(&et, CLOCK_SECOND * 3);
 

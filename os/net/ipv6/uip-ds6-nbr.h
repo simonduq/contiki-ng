@@ -46,10 +46,11 @@
 #ifndef UIP_DS6_NEIGHBOR_H_
 #define UIP_DS6_NEIGHBOR_H_
 
+#include "contiki.h"
 #include "net/ipv6/uip.h"
+#include "net/ipv6/uip-nd6.h"
 #include "net/nbr-table.h"
 #include "sys/stimer.h"
-#include "net/ipv6/uip-ds6.h"
 #if UIP_CONF_IPV6_QUEUE_PKT
 #include "net/ipv6/uip-packetqueue.h"
 #endif                          /*UIP_CONF_QUEUE_PKT */
@@ -89,6 +90,7 @@ uip_ds6_nbr_t *uip_ds6_nbr_add(const uip_ipaddr_t *ipaddr,
                                nbr_table_reason_t reason, void *data);
 int uip_ds6_nbr_rm(uip_ds6_nbr_t *nbr);
 const uip_lladdr_t *uip_ds6_nbr_get_ll(const uip_ds6_nbr_t *nbr);
+int uip_ds6_nbr_update_ll(uip_ds6_nbr_t **nbr, const uip_lladdr_t *new_ll_addr);
 const uip_ipaddr_t *uip_ds6_nbr_get_ipaddr(const uip_ds6_nbr_t *nbr);
 uip_ds6_nbr_t *uip_ds6_nbr_lookup(const uip_ipaddr_t *ipaddr);
 uip_ds6_nbr_t *uip_ds6_nbr_ll_lookup(const uip_lladdr_t *lladdr);

@@ -14,12 +14,6 @@ endif
 # custom MAC: ble_ipsp_mac_driver
 MAKE_MAC ?= MAKE_MAC_OTHER
 
-# we only support IPv6
-MAKE_NET ?= MAKE_NET_IPV6
-ifneq ($(MAKE_NET),MAKE_NET_IPV6)
-  $(error Only IPv6 stack is supported!)
-endif
-
 $(info SDK: $(NRF52_SDK_ROOT))
 
 ifeq ($(NRF52_DK_REVISION),)
@@ -60,7 +54,7 @@ remduplicates = $(strip $(if $1,$(firstword $1) $(call remduplicates,$(filter-ou
 CONTIKI_CPU_DIRS += . dev ble #compat
 
 ### CPU-dependent source files
-CONTIKI_CPU_SOURCEFILES += clock.c rtimer-arch.c uart0.c putchar.c watchdog.c
+CONTIKI_CPU_SOURCEFILES += clock.c rtimer-arch.c uart0.c dbg.c watchdog.c
 CONTIKI_CPU_SOURCEFILES += int-master.c
 
 ifneq ($(NRF52_WITHOUT_SOFTDEVICE),1)
@@ -145,7 +139,7 @@ CFLAGS += -ggdb
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 # keep every function in separate section. This will allow linker to dump unused functions
-LDFLAGS += -Xlinker -Map=$(LISTING_DIRECTORY)/$(OUTPUT_FILENAME).map
+LDFLAGS += -Xlinker -Map=$(CONTIKI_NG_PROJECT_MAP)
 LDFLAGS += -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)
 LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # let linker to dump unused sections
@@ -188,7 +182,7 @@ nrf52832.a: $(OBJECTS)
 
 # Assemble files
 $(OBJECT_DIRECTORY)/%.o: %.s
-	@echo Compiling file: $(notdir $<)
+	$(TRACE_CC)
 	$(Q)$(CC) $(ASMFLAGS) $(addprefix -I$(NRF52_SDK_ROOT)/, $(INC_PATHS)) -c -o $@ $<
 
 %.jlink:

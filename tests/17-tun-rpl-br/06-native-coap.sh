@@ -1,4 +1,5 @@
 #!/bin/bash
+source ../utils.sh
 
 # Contiki directory
 CONTIKI=$1
@@ -10,13 +11,10 @@ IPADDR=fd00::302:304:506:708
 declare -i OKCOUNT=0
 declare -i TESTCOUNT=0
 
-echo "Enabling IPv6"
-sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
-
 # Starting Contiki-NG native node
 echo "Starting native CoAP server"
-make -C $CONTIKI/examples/coap > make.log 2> make.err
-sudo $CONTIKI/examples/coap/coap-example-server.native > node.log 2> node.err &
+make -C $CONTIKI/examples/coap/coap-example-server > make.log 2> make.err
+sudo $CONTIKI/examples/coap/coap-example-server/coap-example-server.native > node.log 2> node.err &
 CPID=$!
 sleep 2
 
@@ -41,10 +39,10 @@ done
 
 echo "Closing native node"
 sleep 2
-pgrep hello-world | sudo xargs kill -9
+kill_bg $CPID
 
 if [ $TESTCOUNT -eq $OKCOUNT ] ; then
-  printf "%-40s TEST OK    %3d/%d\n" "$BASENAME" "$OKCOUNT" "$TESTCOUNT" > $BASENAME.testlog;
+  printf "%-32s TEST OK    %3d/%d\n" "$BASENAME" "$OKCOUNT" "$TESTCOUNT" | tee $BASENAME.testlog;
 else
   echo "==== make.log ====" ; cat make.log;
   echo "==== make.err ====" ; cat make.err;
@@ -52,7 +50,7 @@ else
   echo "==== node.err ====" ; cat node.err;
   echo "==== $BASENAME.log ====" ; cat $BASENAME.log;
 
-  printf "%-32s TEST FAIL  %3d/%d\n" "$BASENAME" "$OKCOUNT" "$TESTCOUNT" > $BASENAME.testlog;
+  printf "%-32s TEST FAIL  %3d/%d\n" "$BASENAME" "$OKCOUNT" "$TESTCOUNT" | tee $BASENAME.testlog;
 fi
 
 rm -f  make.log make.err node.log node.err coap.log

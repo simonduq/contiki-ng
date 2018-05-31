@@ -25,20 +25,22 @@ ifdef NODEID
 endif
 
 ### CPU-dependent directories
-CONTIKI_CPU_DIRS += . dev rf-core rf-core/api $(TI_XXWARE_STARTUP_DIR)
+CONTIKI_CPU_DIRS += . dev rf-core rf-core/api rf-core/ble-hal $(TI_XXWARE_STARTUP_DIR)
 
 ### CPU-dependent source files
 CONTIKI_CPU_SOURCEFILES += clock.c rtimer-arch.c soc-rtc.c uart.c
 CONTIKI_CPU_SOURCEFILES += contiki-watchdog.c aux-ctrl.c
-CONTIKI_CPU_SOURCEFILES += putchar.c ieee-addr.c batmon-sensor.c adc-sensor.c
+CONTIKI_CPU_SOURCEFILES += dbg.c ieee-addr.c batmon-sensor.c adc-sensor.c
 CONTIKI_CPU_SOURCEFILES += slip-arch.c slip.c cc26xx-uart.c lpm.c
-CONTIKI_CPU_SOURCEFILES += gpio-interrupt.c oscillators.c
+CONTIKI_CPU_SOURCEFILES += gpio-interrupt.c gpio-hal-arch.c oscillators.c
 CONTIKI_CPU_SOURCEFILES += rf-core.c rf-ble.c ieee-mode.c
+CONTIKI_CPU_SOURCEFILES += ble-cc2650.c ble-hal-cc26xx.c ble-addr.c rf-ble-cmd.c
 CONTIKI_CPU_SOURCEFILES += random.c soc-trng.c int-master.c
+CONTIKI_CPU_SOURCEFILES += spi-arch.c
 
-DEBUG_IO_SOURCEFILES += dbg-printf.c dbg-snprintf.c dbg-sprintf.c strformat.c
+MODULES += os/lib/dbg-io
 
-CONTIKI_SOURCEFILES += $(CONTIKI_CPU_SOURCEFILES) $(DEBUG_IO_SOURCEFILES)
+CONTIKI_SOURCEFILES += $(CONTIKI_CPU_SOURCEFILES)
 
 CPU_START_SOURCEFILES += fault-handlers.c $(TI_XXWARE_STARTUP_SRCS)
 
@@ -86,21 +88,7 @@ else
 	@echo "This board cannot be programmed through the ROM bootloader and therefore does not support the .upload target."
 endif
 
-# Check if we are running under Windows
-ifeq ($(HOST_OS),Windows)
-  SERIALDUMP ?= $(CONTIKI)/tools/sky/serialdump-windows
-else
-ifeq ($(HOST_OS),Darwin)
-  SERIALDUMP ?= $(CONTIKI)/tools/sky/serialdump-macos
-else
-  # Else assume Linux
-  SERIALDUMP ?= $(CONTIKI)/tools/sky/serialdump-linux
-endif
-endif
-
-UART_BAUDRATE = 115200
-
-login:
-	$(SERIALDUMP) -b$(UART_BAUDRATE) $(PORT)
+### For the login etc targets
+BAUDRATE = 115200
 
 include $(CONTIKI)/arch/cpu/arm/cortex-m/cm3/Makefile.cm3

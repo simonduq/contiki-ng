@@ -4,7 +4,6 @@
   <project EXPORT="discard">[APPS_DIR]/mspsim</project>
   <project EXPORT="discard">[APPS_DIR]/avrora</project>
   <project EXPORT="discard">[APPS_DIR]/serial_socket</project>
-  <project EXPORT="discard">[APPS_DIR]/collect-view</project>
   <project EXPORT="discard">[APPS_DIR]/powertracker</project>
   <simulation>
     <title>My simulation</title>
@@ -223,7 +222,9 @@ make -j hello-world.sky TARGET=sky</commands>
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>TIMEOUT(10000000000); /* milliseconds. no action at timeout */</script>
+      <script>TIMEOUT(10000000000); /* milliseconds. no action at timeout */
+/* Set simulaion speed to real time */
+sim.setSpeedLimit(1.0);</script>
       <active>true</active>
     </plugin_config>
     <width>600</width>

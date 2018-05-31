@@ -43,16 +43,12 @@
 #define CC2420_H_
 
 #include "contiki.h"
-#include "dev/spi.h"
+#include "dev/spi-legacy.h"
 #include "dev/radio.h"
 #include "cc2420_const.h"
 #include "lib/aes-128.h"
 
 #define WITH_SEND_CCA 1
-
-#ifndef CC2420_CONF_CHANNEL
-#define CC2420_CONF_CHANNEL 26
-#endif /* CC2420_CONF_CHANNEL */
 
 #ifndef CC2420_CONF_CCA_THRESH
 #define CC2420_CONF_CCA_THRESH -45

@@ -31,22 +31,18 @@ PLATFORM_ROOT_DIR = $(CONTIKI)/arch/platform/$(TARGET)
 -include $(PLATFORM_ROOT_DIR)/$(BOARD)/Makefile.$(BOARD)
 
 ### Include
-CONTIKI_TARGET_SOURCEFILES += platform.c
+CONTIKI_TARGET_SOURCEFILES += platform.c leds-arch.c
 CONTIKI_TARGET_SOURCEFILES += leds.c cc1200-zoul-arch.c
-CONTIKI_TARGET_SOURCEFILES += adc-zoul.c button-sensor.c zoul-sensors.c
+CONTIKI_TARGET_SOURCEFILES += adc-zoul.c board-buttons.c zoul-sensors.c
 CONTIKI_TARGET_SOURCEFILES += $(BOARD_SOURCEFILES)
 
 CONTIKI_SOURCEFILES += $(CONTIKI_TARGET_SOURCEFILES)
-
-CLEAN += *.zoul
 
 ### Define the CPU directory
 CONTIKI_CPU=$(CONTIKI)/arch/cpu/cc2538
 include $(CONTIKI_CPU)/Makefile.cc2538
 
-MODULES += os/net os/net/mac os/net/mac/framer \
-           arch/dev/cc1200 \
-           os/storage/cfs
+MODULES += arch/dev/cc1200 arch/dev/rgb-led os/storage/cfs
 
 BSL = $(CONTIKI)/tools/cc2538-bsl/cc2538-bsl.py
 
@@ -60,11 +56,9 @@ ifeq ($(HOST_OS),Darwin)
   USBDEVPREFIX=
   MOTELIST := $(CONTIKI)/tools/zolertia/motelist-zolertia-macos
   MOTES := $(shell $(MOTELIST) -c 2>&- | cut -f 2 -d ,)
-  SERIALDUMP := $(CONTIKI)/tools/sky/serialdump-macos
 else
 ### If we are not running under Mac, we assume Linux
   USBDEVPREFIX=
-  SERIALDUMP := $(CONTIKI)/tools/sky/serialdump-linux
   MOTELIST := $(CONTIKI)/tools/zolertia/motelist-zolertia
   MOTES := $(shell $(MOTELIST) -b $(MOTELIST_ZOLERTIA) -c 2>&- | cut -f 2 -d , | \
             perl -ne 'print $$1 . " " if(m-(/dev/\w+)-);')
@@ -107,8 +101,6 @@ zoul-motelist:
 zoul-motes:
 	@echo $(MOTES)
 
-serialview:
-	$(SERIALDUMP) -b115200 $(USBDEVPREFIX)$(firstword $(MOTES)) | $(CONTIKI)/tools/timestamp
-
-login:
-	$(SERIALDUMP) -b115200 $(USBDEVPREFIX)$(firstword $(MOTES))
+### For the login etc targets
+BAUDRATE = 115200
+PORT = $(USBDEVPREFIX)$(firstword $(MOTES))

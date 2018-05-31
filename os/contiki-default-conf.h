@@ -41,6 +41,16 @@
 #define IEEE802154_CONF_PANID 0xabcd
 #endif /* IEEE802154_CONF_PANID */
 
+/* IEEE802154_CONF_DEFAULT_CHANNEL defines the default channel for IEEE 802.15.4
+ * networks, for MAC layers without a channel selection or channel hopping
+ * mechanism. Current 802.15.4 MAC layers:
+ * - CSMA: uses IEEE802154_CONF_DEFAULT_CHANNEL
+ * - TSCH: uses its own TSCH_DEFAULT_HOPPING_SEQUENCE instead
+ */
+#ifndef IEEE802154_CONF_DEFAULT_CHANNEL
+#define IEEE802154_CONF_DEFAULT_CHANNEL 26
+#endif /* IEEE802154_CONF_DEF_CHANNEL */
+
 /* QUEUEBUF_CONF_NUM specifies the number of queue buffers. Queue
    buffers are used throughout the Contiki netstack but the
    configuration option can be tweaked to save memory. Performance can
@@ -80,6 +90,10 @@
 #ifndef UIP_CONF_ROUTER
 #define UIP_CONF_ROUTER 1
 #endif /* UIP_CONF_ROUTER */
+
+/* UIP_CONF_IPV6_RPL tells whether the RPL routing protocol is running,
+    whether implemented as RPL Lite or RPL Classic */
+#define UIP_CONF_IPV6_RPL (ROUTING_CONF_RPL_LITE || ROUTING_CONF_RPL_CLASSIC)
 
 /* If RPL is enabled also enable the RPL NBR Policy */
 #if UIP_CONF_IPV6_RPL

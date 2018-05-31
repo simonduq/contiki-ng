@@ -115,7 +115,7 @@ static uip_ds6_nbr_t *nbr; /**  Pointer to a nbr cache entry*/
 static uip_ds6_addr_t *addr; /**  Pointer to an interface address */
 #endif /* UIP_ND6_SEND_NS || UIP_ND6_SEND_NA || UIP_ND6_SEND_RA || !UIP_CONF_ROUTER */
 
-#if UIP_ND6_SEND_NS || !UIP_CONF_ROUTER
+#if UIP_ND6_SEND_NS || UIP_ND6_SEND_RA || !UIP_CONF_ROUTER
 static uip_ds6_defrt_t *defrt; /**  Pointer to a router list entry */
 #endif /* UIP_ND6_SEND_NS || UIP_ND6_SEND_RA || !UIP_CONF_ROUTER */
 
@@ -230,7 +230,9 @@ ns_input(void)
           }
           if(memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
               lladdr, UIP_LLADDR_LEN) != 0) {
-            if(nbr_table_update_lladdr((const linkaddr_t *)lladdr, (const linkaddr_t *)&lladdr_aligned, 1) == 0) {
+            if(uip_ds6_nbr_update_ll(&nbr,
+                                     (const uip_lladdr_t *)&lladdr_aligned)
+               < 0) {
               /* failed to update the lladdr */
               goto discard;
             }
@@ -528,13 +530,14 @@ na_input(void)
     if(nd6_opt_llao != NULL) {
       is_llchange =
         memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET], lladdr,
-               UIP_LLADDR_LEN);
+               UIP_LLADDR_LEN) == 0 ? 0 : 1;
     }
     if(nbr->state == NBR_INCOMPLETE) {
       if(nd6_opt_llao == NULL || !extract_lladdr_from_llao_aligned(&lladdr_aligned)) {
         goto discard;
       }
-      if(nbr_table_update_lladdr((const linkaddr_t *)lladdr, (const linkaddr_t *)&lladdr_aligned, 1) == 0) {
+      if(uip_ds6_nbr_update_ll(&nbr,
+                               (const uip_lladdr_t *)&lladdr_aligned) < 0) {
         /* failed to update the lladdr */
         goto discard;
       }
@@ -561,7 +564,9 @@ na_input(void)
         if(is_override || !is_llchange || nd6_opt_llao == NULL) {
           if(nd6_opt_llao != NULL && is_llchange) {
             if(!extract_lladdr_from_llao_aligned(&lladdr_aligned) ||
-               nbr_table_update_lladdr((const linkaddr_t *) lladdr, (const linkaddr_t *) &lladdr_aligned, 1) == 0) {
+               uip_ds6_nbr_update_ll(&nbr,
+                                     (const uip_lladdr_t *)&lladdr_aligned)
+               < 0) {
               /* failed to update the lladdr */
               goto discard;
             }
@@ -925,7 +930,8 @@ ra_input(void)
         if(memcmp(&nd6_opt_llao[UIP_ND6_OPT_DATA_OFFSET],
                   lladdr, UIP_LLADDR_LEN) != 0) {
           /* change of link layer address */
-          if(nbr_table_update_lladdr((const linkaddr_t *)lladdr, (const linkaddr_t *)&lladdr_aligned, 1) == 0) {
+          if(uip_ds6_nbr_update_ll(&nbr,
+                                   (const uip_lladdr_t *)&lladdr_aligned) < 0) {
             /* failed to update the lladdr */
             goto discard;
           }
@@ -973,7 +979,7 @@ ra_input(void)
             default:
               LOG_DBG("Updating timer of prefix ");
               LOG_DBG_6ADDR(&prefix->ipaddr);
-              LOG_DBG_(" new value %lu\n", uip_ntohl(nd6_opt_prefix_info->validlt));
+              LOG_DBG_(" new value %"PRIu32"\n", uip_ntohl(nd6_opt_prefix_info->validlt));
               stimer_set(&prefix->vlifetime,
                          uip_ntohl(nd6_opt_prefix_info->validlt));
               prefix->isinfinite = 0;
@@ -999,7 +1005,7 @@ ra_input(void)
                 LOG_DBG("Updating timer of address ");
                 LOG_DBG_6ADDR(&addr->ipaddr);
                 LOG_DBG_(" new value %lu\n",
-                       uip_ntohl(nd6_opt_prefix_info->validlt));
+                       (unsigned long)uip_ntohl(nd6_opt_prefix_info->validlt));
                 stimer_set(&addr->vlifetime,
                            uip_ntohl(nd6_opt_prefix_info->validlt));
               } else {
@@ -1027,18 +1033,16 @@ ra_input(void)
       break;
 #if UIP_ND6_RA_RDNSS
     case UIP_ND6_OPT_RDNSS:
-      if(UIP_ND6_RA_BUF->flags_reserved & (UIP_ND6_O_FLAG << 6)) {
-        LOG_DBG("Processing RDNSS option\n");
-        uint8_t naddr = (UIP_ND6_OPT_RDNSS_BUF->len - 1) / 2;
-        uip_ipaddr_t *ip = (uip_ipaddr_t *)(&UIP_ND6_OPT_RDNSS_BUF->ip);
-        LOG_DBG("got %d nameservers\n", naddr);
-        while(naddr-- > 0) {
-          LOG_DBG("nameserver: ");
-          LOG_DBG_6ADDR(ip);
-          LOG_DBG_(" lifetime: %lx\n", uip_ntohl(UIP_ND6_OPT_RDNSS_BUF->lifetime));
-          uip_nameserver_update(ip, uip_ntohl(UIP_ND6_OPT_RDNSS_BUF->lifetime));
-          ip++;
-        }
+      LOG_DBG("Processing RDNSS option\n");
+      uint8_t naddr = (UIP_ND6_OPT_RDNSS_BUF->len - 1) / 2;
+      uip_ipaddr_t *ip = (uip_ipaddr_t *)(&UIP_ND6_OPT_RDNSS_BUF->ip);
+      LOG_DBG("got %d nameservers\n", naddr);
+      while(naddr-- > 0) {
+        LOG_DBG("nameserver: ");
+        LOG_DBG_6ADDR(ip);
+        LOG_DBG_(" lifetime: %"PRIx32"\n", uip_ntohl(UIP_ND6_OPT_RDNSS_BUF->lifetime));
+        uip_nameserver_update(ip, uip_ntohl(UIP_ND6_OPT_RDNSS_BUF->lifetime));
+        ip++;
       }
       break;
 #endif /* UIP_ND6_RA_RDNSS */

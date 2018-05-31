@@ -39,7 +39,7 @@
 #include "sys/energest.h"
 
 #include "dev/leds.h"
-#include "dev/spi.h"
+#include "dev/spi-legacy.h"
 #include "cc2420.h"
 #include "cc2420_const.h"
 
@@ -641,7 +641,7 @@ cc2420_init(void)
   init_security();
 
   cc2420_set_pan_addr(0xffff, 0x0000, NULL);
-  cc2420_set_channel(CC2420_CONF_CHANNEL);
+  cc2420_set_channel(IEEE802154_DEFAULT_CHANNEL);
   cc2420_set_cca_threshold(CC2420_CONF_CCA_THRESH);
 
   flushrx();

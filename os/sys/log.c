@@ -50,6 +50,7 @@
 
 #include "sys/log.h"
 #include "net/ipv6/ip64-addr.h"
+#include "net/ipv6/uiplib.h"
 
 int curr_log_level_rpl = LOG_CONF_LEVEL_RPL;
 int curr_log_level_tcpip = LOG_CONF_LEVEL_TCPIP;
@@ -59,6 +60,8 @@ int curr_log_level_nullnet = LOG_CONF_LEVEL_NULLNET;
 int curr_log_level_mac = LOG_CONF_LEVEL_MAC;
 int curr_log_level_framer = LOG_CONF_LEVEL_FRAMER;
 int curr_log_level_6top = LOG_CONF_LEVEL_6TOP;
+int curr_log_level_coap = LOG_CONF_LEVEL_COAP;
+int curr_log_level_lwm2m = LOG_CONF_LEVEL_LWM2M;
 int curr_log_level_main = LOG_CONF_LEVEL_MAIN;
 
 struct log_module all_modules[] = {
@@ -70,6 +73,8 @@ struct log_module all_modules[] = {
   {"mac", &curr_log_level_mac, LOG_CONF_LEVEL_MAC},
   {"framer", &curr_log_level_framer, LOG_CONF_LEVEL_FRAMER},
   {"6top", &curr_log_level_6top, LOG_CONF_LEVEL_6TOP},
+  {"coap", &curr_log_level_coap, LOG_CONF_LEVEL_COAP},
+  {"lwm2m", &curr_log_level_lwm2m, LOG_CONF_LEVEL_LWM2M},
   {"main", &curr_log_level_main, LOG_CONF_LEVEL_MAIN},
   {NULL, NULL, 0},
 };
@@ -80,35 +85,9 @@ struct log_module all_modules[] = {
 void
 log_6addr(const uip_ipaddr_t *ipaddr)
 {
-  uint16_t a;
-  unsigned int i;
-  int f;
-
-  if(ipaddr == NULL) {
-    LOG_OUTPUT("(NULL IP addr)");
-    return;
-  }
-
-  if(ip64_addr_is_ipv4_mapped_addr(ipaddr)) {
-    /* Printing IPv4-mapped addresses is done according to RFC 4291 */
-    LOG_OUTPUT("::FFFF:%u.%u.%u.%u", ipaddr->u8[12], ipaddr->u8[13], ipaddr->u8[14], ipaddr->u8[15]);
-  } else {
-    for(i = 0, f = 0; i < sizeof(uip_ipaddr_t); i += 2) {
-      a = (ipaddr->u8[i] << 8) + ipaddr->u8[i + 1];
-      if(a == 0 && f >= 0) {
-        if(f++ == 0) {
-          LOG_OUTPUT("::");
-        }
-      } else {
-        if(f > 0) {
-          f = -1;
-        } else if(i > 0) {
-          LOG_OUTPUT(":");
-        }
-        LOG_OUTPUT("%x", a);
-      }
-    }
-  }
+  char buf[UIPLIB_IPV6_MAX_STR_LEN];
+  uiplib_ipaddr_snprint(buf, sizeof(buf), ipaddr);
+  LOG_OUTPUT("%s", buf);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -151,7 +130,11 @@ log_lladdr_compact(const linkaddr_t *lladdr)
   if(lladdr == NULL || linkaddr_cmp(lladdr, &linkaddr_null)) {
     LOG_OUTPUT("LL-NULL");
   } else {
+#if LINKADDR_SIZE == 8
     LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16[LINKADDR_SIZE/2-1]));
+#elif LINKADDR_SIZE == 2
+    LOG_OUTPUT("LL-%04x", UIP_HTONS(lladdr->u16));
+#endif
   }
 }
 /*---------------------------------------------------------------------------*/

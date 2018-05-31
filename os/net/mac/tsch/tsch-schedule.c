@@ -50,11 +50,6 @@
 #include "net/packetbuf.h"
 #include "net/queuebuf.h"
 #include "net/mac/tsch/tsch.h"
-#include "net/mac/tsch/tsch-queue.h"
-#include "net/mac/tsch/tsch-private.h"
-#include "net/mac/tsch/tsch-packet.h"
-#include "net/mac/tsch/tsch-schedule.h"
-#include "net/mac/tsch/tsch-log.h"
 #include "net/mac/framer/frame802154.h"
 #include "sys/process.h"
 #include "sys/rtimer.h"
@@ -428,7 +423,7 @@ tsch_schedule_create_minimal(void)
    * but is required according to 802.15.4e if also used for EB transmission.
    * Timeslot: 0, channel offset: 0. */
   tsch_schedule_add_link(sf_min,
-      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
+      (LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING),
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 }
@@ -452,16 +447,15 @@ tsch_schedule_print(void)
   if(!tsch_is_locked()) {
     struct tsch_slotframe *sf = list_head(slotframe_list);
 
-    printf("Schedule: slotframe list\n");
+    LOG_PRINT("----- start slotframe list -----\n");
 
     while(sf != NULL) {
       struct tsch_link *l = list_head(sf->links_list);
 
-      printf("[Slotframe] Handle %u, size %u\n", sf->handle, sf->size.val);
-      printf("List of links:\n");
+      LOG_PRINT("Slotframe Handle %u, size %u\n", sf->handle, sf->size.val);
 
       while(l != NULL) {
-        printf("[Link] Options %02x, type %u, timeslot %u, channel offset %u, address %u\n",
+        LOG_PRINT("* Link Options %02x, type %u, timeslot %u, channel offset %u, address %u\n",
                l->link_options, l->link_type, l->timeslot, l->channel_offset, l->addr.u8[7]);
         l = list_item_next(l);
       }
@@ -469,7 +463,7 @@ tsch_schedule_print(void)
       sf = list_item_next(sf);
     }
 
-    printf("Schedule: end of slotframe list\n");
+    LOG_PRINT("----- end slotframe list -----\n");
   }
 }
 /*---------------------------------------------------------------------------*/

@@ -79,10 +79,6 @@
 #define JN516X_EXTERNAL_CRYSTAL_OSCILLATOR (RTIMER_USE_32KHZ || JN516X_SLEEP_ENABLED)
 #endif /* JN516X_EXTERNAL_CRYSTAL_OSCILLATOR */
 
-/* Core rtimer.h defaults to 16 bit timer unless RTIMER_CLOCK_DIFF is defined */
-typedef uint32_t rtimer_clock_t;
-#define RTIMER_CLOCK_DIFF(a, b)     ((int32_t)((a) - (b)))
-
 /* 8ms timer tick */
 #define CLOCK_CONF_SECOND 125
 
@@ -196,6 +192,8 @@ typedef uint32_t rtimer_clock_t;
 #define PLATFORM_HAS_SHT11   0
 #define PLATFORM_HAS_RADIO   1
 
+#define LEDS_CONF_LEGACY_API       1
+
 #define PLATFORM_CONF_PROVIDES_MAIN_LOOP 1
 
 /* CPU target speed in Hz
@@ -216,9 +214,6 @@ typedef uint32_t rtimer_clock_t;
 #define CC_CONF_FUNCTION_POINTER_ARGS  1
 #define CC_CONF_VA_ARGS                1
 #define CC_CONF_INLINE                 inline
-
-#define CCIF
-#define CLIF
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -269,11 +264,6 @@ typedef uint32_t clock_time_t;
 #define UART1_BAUD_RATE UART_RATE_1000000
 #endif
 #define ENABLE_ADVANCED_BAUD_SELECTION (UART_BAUD_RATE > UART_RATE_115200)
-
-/* Set this to zero only if we are using SLIP */
-#ifndef SLIP_BRIDGE_CONF_NO_PUTCHAR
-#define SLIP_BRIDGE_CONF_NO_PUTCHAR 1
-#endif /* SLIP_BRIDGE_CONF_NO_PUTCHAR */
 
 /* Extension of LED definitions from leds.h for various JN516x dev boards
 JN516x Dongle:

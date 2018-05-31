@@ -54,18 +54,9 @@
 #include "net/link-stats.h"
 #include "net/mac/framer/framer-802154.h"
 #include "net/mac/tsch/tsch.h"
-#include "net/mac/tsch/tsch-slot-operation.h"
-#include "net/mac/tsch/tsch-queue.h"
-#include "net/mac/tsch/tsch-private.h"
-#include "net/mac/tsch/tsch-log.h"
-#include "net/mac/tsch/tsch-packet.h"
-#include "net/mac/tsch/tsch-security.h"
 #include "net/mac/mac-sequence.h"
 #include "lib/random.h"
-
-#if UIP_CONF_IPV6_RPL
-#include "net/mac/tsch/tsch-rpl.h"
-#endif /* UIP_CONF_IPV6_RPL */
+#include "net/routing/routing.h"
 
 #if TSCH_WITH_SIXTOP
 #include "net/mac/tsch/sixtop/sixtop.h"
@@ -275,7 +266,7 @@ keepalive_packet_sent(void *ptr, int status, int transmissions)
   LOG_INFO_(", st %d-%d\n", status, transmissions);
 
   /* We got no ack, try to recover by switching to the last neighbor we received an EB from */
-  if(status != MAC_TX_OK) {
+  if(status == MAC_TX_NOACK) {
     if(linkaddr_cmp(&last_eb_nbr_addr, &linkaddr_null)) {
       LOG_WARN("not able to re-synchronize, received no EB from other neighbors\n");
       if(sync_count == 0) {
@@ -734,7 +725,7 @@ PT_THREAD(tsch_scan(struct pt *pt))
     if(!is_packet_pending && NETSTACK_RADIO.receiving_packet()) {
       /* If we are currently receiving a packet, wait until end of reception */
       t0 = RTIMER_NOW();
-      BUSYWAIT_UNTIL_ABS((is_packet_pending = NETSTACK_RADIO.pending_packet()), t0, RTIMER_SECOND / 100);
+      RTIMER_BUSYWAIT_UNTIL_ABS((is_packet_pending = NETSTACK_RADIO.pending_packet()), t0, RTIMER_SECOND / 100);
     }
 
     if(is_packet_pending) {
