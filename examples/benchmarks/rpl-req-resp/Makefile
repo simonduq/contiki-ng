@@ -19,6 +19,10 @@ else ifeq ($(CONFIG),CONFIG_TSCH_OPTIMS)
 MAKE_MAC = MAKE_MAC_TSCH
 MODULES += os/services/orchestra
 CFLAGS += -DCONFIG_OPTIMS=1
+else ifeq ($(CONFIG),CONFIG_TSCH_OPTIMS2)
+MAKE_MAC = MAKE_MAC_TSCH
+MODULES += os/services/orchestra
+CFLAGS += -DCONFIG_OPTIMS=2
 endif
 
 CONTIKI = ../../..
