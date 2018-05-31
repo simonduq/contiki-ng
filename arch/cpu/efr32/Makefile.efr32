@@ -42,10 +42,10 @@ EFR32MG    := clock.c \
               dbg.c \
               watchdog.c \
               efr32-radio.c \
-              i2c-arch.c \
-	      gpiointerrupt.c
+              i2c-arch.c
 EMDRV      := uartdrv.c \
-              dmadrv.c
+              dmadrv.c  \
+	      gpiointerrupt.c
 EMLIB      := em_acmp.c \
               em_adc.c \
               em_aes.c \
