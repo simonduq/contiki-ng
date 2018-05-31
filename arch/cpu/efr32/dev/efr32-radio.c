@@ -117,7 +117,7 @@ PROCESS(radio_proc, "efr32 radio driver");
 static void RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents);
 
 static uint8_t sRailTxFifo[1 + IEEE802154_MAX_LENGTH];
-static uint8_t packet_received = 0;
+static volatile uint8_t packet_received = 0;
 
 typedef struct RAILStateDummy_t {
   uint32_t a;
@@ -173,7 +173,7 @@ RAIL_DECLARE_TX_POWER_VBAT_CURVES(piecewiseSegments, curvesSg, curves24Hp,
                                   curves24Lp);
 
 
-static int panid = 0xabcd;
+static uint16_t panid = 0xabcd;
 static int channel = 26;
 static int cca_threshold = -85;
 static RAIL_TxOptions_t  txOptions = RAIL_TX_OPTIONS_DEFAULT;
@@ -229,7 +229,8 @@ init(void)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-static void RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
+static void
+RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
 {
 
   PRINTF("EFR32 Radio - callback event: %d\n", (int) aEvents);
@@ -267,8 +268,6 @@ static void RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
 static radio_result_t
 get_value(radio_param_t param, radio_value_t *value)
 {
-  radio_result_t ret = RADIO_RESULT_NOT_SUPPORTED;
-
   if(!value) {
     return RADIO_RESULT_INVALID_VALUE;
   }
@@ -276,26 +275,22 @@ get_value(radio_param_t param, radio_value_t *value)
   switch(param) {
   case RADIO_PARAM_PAN_ID:
     *value = panid;
-    ret = RADIO_RESULT_OK;
-    break;
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_CHANNEL:
     *value = channel;
-    ret = RADIO_RESULT_OK;
-    break;
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_RSSI:
     {
       int16_t rssi_value = RAIL_GetRssi(sRailHandle, true);
       if(rssi_value != RAIL_RSSI_INVALID) {
         /* RAIL_RxGetRSSI() returns value in quarter dBm (dBm * 4) */
         *value = rssi_value / 4;
-        ret = RADIO_RESULT_OK;
-      } else {
-        ret = RADIO_RESULT_ERROR;
+        return RADIO_RESULT_OK;
       }
-      break;
+      return RADIO_RESULT_ERROR;
     }
   }
-  return ret;
+  return RADIO_RESULT_NOT_SUPPORTED;
 }
 /*---------------------------------------------------------------------------*/
 static radio_result_t
@@ -310,13 +305,13 @@ set_value(radio_param_t param, radio_value_t value)
     channel = value;
     /* start receiving on that channel */
     RAIL_StartRx(sRailHandle, channel, NULL);
-    break;
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_PAN_ID:
-    panid = value;
-    RAIL_IEEE802154_SetPanId(sRailHandle, (uint16_t)value, 0);
-    break;
+    panid = value & 0xffff;
+    RAIL_IEEE802154_SetPanId(sRailHandle, panid, 0);
+    return RADIO_RESULT_OK;
   }
-  return RADIO_RESULT_OK;
+  return RADIO_RESULT_NOT_SUPPORTED;
 }
 /*---------------------------------------------------------------------------*/
 static radio_result_t
@@ -324,8 +319,8 @@ get_object(radio_param_t param, void *dest, size_t size)
 {
   return RADIO_RESULT_NOT_SUPPORTED;
 }
-static radio_result_t
 /*---------------------------------------------------------------------------*/
+static radio_result_t
 set_object(radio_param_t param, const void *src, size_t size)
 {
   if(param == RADIO_PARAM_64BIT_ADDR) {
@@ -499,8 +494,8 @@ pending_packet(void)
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(radio_proc, ev, data)
 {
-  int len;
   static struct etimer periodic;
+  int len;
 
   PROCESS_BEGIN();
 
@@ -511,6 +506,7 @@ PROCESS_THREAD(radio_proc, ev, data)
 
     if(etimer_expired(&periodic)) {
     }
+
     if(packet_received) {
       packetbuf_clear();
       len = read(packetbuf_dataptr(), PACKETBUF_SIZE);
@@ -525,7 +521,7 @@ PROCESS_THREAD(radio_proc, ev, data)
   }
   PROCESS_END();
 }
-
+/*---------------------------------------------------------------------------*/
 const struct radio_driver efr32_radio_driver = {
   init,
   prepare,
@@ -542,3 +538,4 @@ const struct radio_driver efr32_radio_driver = {
   get_object,
   set_object
 };
+/*---------------------------------------------------------------------------*/

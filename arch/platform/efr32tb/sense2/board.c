@@ -61,7 +61,7 @@ i2c_bus_t i2c1_bus = {.lock_device = NULL,
 
 
 /*---------------------------------------------------------------------------*/
-void
+static void
 handle_periodic_timer(void *p)
 {
   int32_t temp;

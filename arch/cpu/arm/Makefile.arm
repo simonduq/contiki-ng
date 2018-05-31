@@ -26,8 +26,8 @@ else
   CFLAGS += -O2
 endif
 
-### Use CMSIS and the existing dbg-io from arch/cpu/arm/common
-CONTIKI_ARM_DIRS += . common/dbg-io
+### Use CMSIS from arch/cpu/arm/
+CONTIKI_ARM_DIRS += .
 CONTIKI_CPU_DIRS += $(addprefix ../arm/, $(CONTIKI_ARM_DIRS))
 
 ### CPU-dependent cleanup files

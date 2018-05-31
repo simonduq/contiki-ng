@@ -39,19 +39,13 @@
 #include PROJECT_CONF_PATH
 #endif /* PROJECT_CONF_PATH */
 
+#include "efr32-def.h"
+
 /* Board specific configuration */
 #include "board.h"
 
-#include "efr32-def.h"
-
-/* Disable the stack check library by default: .rom overflow otherwise */
-#ifndef STACK_CHECK_CONF_ENABLED
-#define STACK_CHECK_CONF_ENABLED 0
-#endif
-
-#ifndef SHELL_CONF_OUT_BUFFER_SIZE
-#define SHELL_CONF_OUT_BUFFER_SIZE 256
-#endif /* SHELL_CONF_OUT_BUFFER_SIZE */
+/* Disable the stack check library for now */
+#define PLATFORM_CONF_SUPPORTS_STACK_CHECK  0
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -63,12 +57,18 @@
 
 #define RTIMER_CONF_CLOCK_SIZE 8
 
+/* Clock (time) comparison macro */
+#define CLOCK_LT(a, b)  ((int64_t)((a) - (b)) < 0)
+
 typedef uint64_t clock_time_t;
 typedef uint32_t uip_stats_t;
 
 #define CLOCK_CONF_SECOND   1000
 #define RTIMER_ARCH_SECOND  32768
 
+/** @} */
+
+#define LEDS_CONF_LEGACY_API                    1
 /*---------------------------------------------------------------------------*/
 /**
  * \name SPI configuration
@@ -86,29 +86,7 @@ typedef uint32_t uip_stats_t;
 #define PLATFORM_HAS_I2C_ARCH                   0
 #endif
 /*---------------------------------------------------------------------------*/
-/**
- * \name Watchdog Timer configuration
- *
- */
-#ifndef WATCHDOG_CONF_ENABLE
-#define WATCHDOG_CONF_ENABLE                    1
-#endif
-/*---------------------------------------------------------------------------*/
-/**
- * \name Generic Configuration directives
- */
-#ifndef ENERGEST_CONF_ON
-#define ENERGEST_CONF_ON                        1
-#endif
-/*---------------------------------------------------------------------------*/
-#define NETSTACK_CONF_RADIO                     efr32_radio_driver
-#define RF_CHANNEL                              26
-/* CSMA need to know that EFR32 handles ACK reception */
-/* #define CSMA_CONF_RADIO_HANDLES_ACK_RX          1 */
-
-/*---------------------------------------------------------------------------*/
-/* TCP Config */
-#define UIP_CONF_TCP_MSS 500
-
+/* Include CPU-related configuration */
+#include "efr32-conf.h"
 /*---------------------------------------------------------------------------*/
 #endif /* CONTIKI_CONF_H_ */

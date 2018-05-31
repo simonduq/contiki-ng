@@ -1,24 +1,25 @@
-# Default part number
-PART_NUMBER     ?= EFR32MG1P232F256GM48
-EFR32_MCU       ?= EFR32MG1P
-EFR32_FAMILY    ?= efr32xg1
-EFR32_JLINK_MCU ?= EFR32MG1PXXXF256
+ifndef GECKO_SDK_PATH
+  $(error GECKO_SDK_PATH not defined! You must specify where GECKO SDK resides!)
+endif
 
-# Use newer CMSIS
-CONTIKI_CPU_ARM_COMMON = $(CONTIKI)/arch/cpu/arm
-
-# Warning for non-initialized submodules
-ifeq (${wildcard $(CONTIKI_CPU_ARM_COMMON)/cortex-m/CMSIS/core_cm4.h},)
-  ${error Could not find the ARM CMSIS submodule. Please run "git submodule update --init --recursive" and try again}
+ifndef PART_NUMBER
+  $(error PART_NUMBER not defined!)
+endif
+ifndef EFR32_MCU
+  $(error EFR32_MCU not defined!)
+endif
+ifndef EFR32_FAMILY
+  $(error EFR32_FAMILY not defined!)
+endif
+ifndef EFR32_JLINK_MCU
+  $(error EFR32_JLINK_MCU not defined!)
 endif
 
 ifndef GECKO_SDK_VERSION
   GECKO_SDK_VERSION := v2.2
 endif
 
-ifndef GECKO_SDK_PATH
-  GECKO_SDK_PATH := $(CONTIKI)/gecko_sdk_suite
-endif
+GECKO_SDK_PLATFORM := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform
 
 EFR32_MCU_LOWER := ${strip ${shell echo $(EFR32_MCU) | sed y!$(UPPERCASE)!$(LOWERCASE)!}}
 
@@ -26,16 +27,12 @@ EFR32_MCU_LOWER := ${strip ${shell echo $(EFR32_MCU) | sed y!$(UPPERCASE)!$(LOWE
 
 CONTIKI_CPU_DIRS = . dev
 
-CONTIKIDIRS += $(CONTIKI_CPU_ARM_COMMON) \
-	       ${addprefix $(CONTIKI_CPU_ARM_COMMON)/,cortex-m/CMSIS}
-CONTIKIDIRS += dev
-
 #includes common to all targets
 INC_PATHS += ${addprefix Device/SiliconLabs/$(EFR32_MCU)/,Include Source Source/GCC}
 INC_PATHS += emlib/inc emlib/src emdrv/uartdrv/inc emdrv/uartdrv/src emdrv/uartdrv/config emdrv/common/inc emdrv/dmadrv/src emdrv/dmadrv/inc emdrv/dmadrv/config emdrv/gpiointerrupt/inc emdrv/gpiointerrupt/src
 INC_PATHS += ${addprefix radio/rail_lib/,chip/efr32 chip/efr32/rf/common/cortex common protocol plugin/pa-conversions}
 
-EXTERNALDIRS += $(addprefix $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/, $(INC_PATHS))
+EXTERNALDIRS += $(addprefix $(GECKO_SDK_PLATFORM)/,$(INC_PATHS))
 
 EFR32MG    := clock.c \
               rtimer-arch.c \
@@ -46,42 +43,10 @@ EFR32MG    := clock.c \
 EMDRV      := uartdrv.c \
               dmadrv.c  \
 	      gpiointerrupt.c
-EMLIB      := em_acmp.c \
-              em_adc.c \
-              em_aes.c \
-              em_assert.c \
-              em_burtc.c \
-              em_cmu.c \
-              em_core.c \
-              em_cryotimer.c \
-              em_crypto.c \
-              em_dac.c \
-              em_dbg.c \
-              em_dma.c \
-              em_ebi.c \
-              em_emu.c \
-              em_gpcrc.c \
-              em_gpio.c \
-              em_i2c.c \
-              em_idac.c \
-              em_lcd.c \
-              em_ldma.c \
-              em_lesense.c \
-              em_letimer.c \
-              em_leuart.c \
-              em_mpu.c \
-              em_msc.c \
-              em_opamp.c \
-              em_pcnt.c \
-              em_prs.c \
-              em_rmu.c \
-              em_rtc.c \
-              em_rtcc.c \
-              em_system.c \
-              em_timer.c \
-              em_usart.c \
-              em_vcmp.c \
-              em_wdog.c
+EMLIB_ALL  := ${notdir ${wildcard $(GECKO_SDK_PLATFORM)/emlib/src/*.c}}
+
+# Some library files are deprecated and should not be included
+EMLIB      := ${filter-out em_int.c,$(EMLIB_ALL)}
 
 RAILFILES  := pa_conversions_efr32.c
 
@@ -100,49 +65,21 @@ CONTIKI_SOURCEFILES += $(EFR32MG) \
 
 # LIBRAIL := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/protocol/flex_2.1/connect/plugins/libraries/phy-rail-$(EFR32_FAMILY)-rtos-library-gcc.a
 
-LIBRAIL := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/radio/rail_lib/autogen/librail_release/librail_multiprotocol_$(EFR32_FAMILY)_gcc_release.a
+LIBRAIL := $(GECKO_SDK_PLATFORM)/radio/rail_lib/autogen/librail_release/librail_multiprotocol_$(EFR32_FAMILY)_gcc_release.a
 
-TARGET_LIBFILES := $(LIBRAIL)
+TARGET_LIBS := $(LIBRAIL)
 
-LINKERSCRIPT := $(GECKO_SDK_PATH)/$(GECKO_SDK_VERSION)/platform/Device/SiliconLabs/$(EFR32_MCU)/Source/GCC/$(EFR32_MCU_LOWER).ld
+LINKERSCRIPT := $(GECKO_SDK_PLATFORM)/Device/SiliconLabs/$(EFR32_MCU)/Source/GCC/$(EFR32_MCU_LOWER).ld
 
 TARGET_STARTFILES = ${addprefix $(OBJECTDIR)/,${call oname, $(START_SOURCEFILES)}}
 
-# Compiler definitions
-
-CC       := arm-none-eabi-gcc
-# Use gcc for linking
-LD       := arm-none-eabi-gcc
-AS       := arm-none-eabi-as
-AR       := arm-none-eabi-ar
-NM       := arm-none-eabi-nm
-OBJCOPY  := arm-none-eabi-objcopy
-STRIP    := arm-none-eabi-strip
-SIZE     := arm-none-eabi-size
-SIZEFLAGS := -A
-
-ARCH_FLAGS := -march=armv7-m \
-              -mthumb
-
 CFLAGS += -D$(PART_NUMBER) \
           -D$(EFR32_MCU) \
-          -DWITH_ASCII \
           -D__START=main \
           -D__STARTUP_CLEAR_BSS \
           -DCMSIS_DEV_HDR=\"em_device.h\" \
           -Dsvcall_handler=SVC_Handler \
-          -Dpendsv_handler=PendSV_Handler \
-          $(ARCH_FLAGS)
-
-ifdef DEBUG
-  CFLAGS += -g -O0 -Wall
-else
-  CFLAGS += -g -O1 -Wall -Wno-strict-aliasing
-endif
-
-ifeq ($(WERROR),1)
- CFLAGS += -Werror
-endif
+          -Dpendsv_handler=PendSV_Handler
 
 LDFLAGS += -L $(CONTIKI_CPU) \
            -Wl,--start-group \
@@ -150,19 +87,13 @@ LDFLAGS += -L $(CONTIKI_CPU) \
            -nostartfiles \
            $(CFLAGS)
 
+include $(CONTIKI)/arch/cpu/arm/cortex-m/cm4/Makefile.cm4
+
 ifeq ($(V),1)
-  TRACE_OBJCOPY =
   TRACE_UPLOAD =
 else
-  TRACE_OBJCOPY = @echo "  OBJCOPY  " $@
   TRACE_UPLOAD = @echo "  UPLOAD   " $<
 endif
-
-# Custom build rules
-
-%.bin: %.$(TARGET)
-	$(TRACE_OBJCOPY)
-	$(Q)$(OBJCOPY) -O binary $< $@
 
 # Flashing
 
@@ -229,4 +160,3 @@ jlink-not-found-msg:
 jlink-list: jlink-not-found-msg
 	@false
 endif
-

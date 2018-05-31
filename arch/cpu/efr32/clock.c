@@ -33,71 +33,80 @@
  * Minimal implementation of clock functions needed by Contiki-NG.
  */
 #include "contiki.h"
-#include <stdint.h>
 #include "em_core.h"
 #include "rail.h"
+#include <stdint.h>
 
 void SysTick_Handler(void) __attribute__ ((interrupt));
-
-uint32_t low_tick;
-uint32_t hi_tick;
 
 #if CLOCK_SECOND != 1000
 #error CLOCK_SECOND needs to be 1000
 #endif
 
-void SysTick_Handler(void)
+static volatile clock_time_t current_time;
+/*---------------------------------------------------------------------------*/
+void
+SysTick_Handler(void)
 {
   /* Keep etimers triggering */
   if(etimer_pending() && (etimer_next_expiration_time() <= clock_time())) {
     etimer_request_poll();
   }
 }
-
-void clock_init(void)
+/*---------------------------------------------------------------------------*/
+void
+clock_init(void)
 {
-  hi_tick = low_tick = 0;
   /* keep etimers checked 100 times per second. */
   SysTick_Config(SystemCoreClockGet() / 100);
 }
-
-clock_time_t clock_time(void)
+/*---------------------------------------------------------------------------*/
+clock_time_t
+clock_time(void)
 {
+  static uint32_t last_time;
+  uint64_t time;
   uint32_t now;
-  now = RAIL_GetTime();
-  /* CORE_ATOMIC_SECTION( */
-  /*    if(low_tick > now) { */
-  /*      hi_tick++; */
-  /*    } */
-  /*    low_tick = now; */
-  /* ); */
-  /* return (clock_time_t) ((((uint64_t) hi_tick) << 32) | */
-  /*                        ((uint64_t) low_tick)) / 1000L; */
-  return (clock_time_t) now / 1000L;
-}
 
-unsigned long clock_seconds(void)
+  CORE_ATOMIC_SECTION(
+    now = RAIL_GetTime();
+    current_time += now - last_time;
+    last_time = now;
+    time = current_time;
+  )
+  return time / 1000;
+}
+/*---------------------------------------------------------------------------*/
+unsigned long
+clock_seconds(void)
 {
   return clock_time() / CLOCK_SECOND;
 }
-
+/*---------------------------------------------------------------------------*/
 /* ignored for now */
-void clock_set_seconds(unsigned long sec)
+void
+clock_set_seconds(unsigned long sec)
 {
 }
-
-
-void clock_wait(clock_time_t t)
+/*---------------------------------------------------------------------------*/
+void
+clock_wait(clock_time_t t)
 {
-  clock_time_t now;
-  now = clock_time();
-  t = t + now;
-  while((now = clock_time()) < t);
+  t = clock_time() + t;
+  while(clock_time() < t);
 }
-
-void clock_delay_usec(uint16_t dt)
+/*---------------------------------------------------------------------------*/
+void
+clock_delay_usec(uint16_t dt)
 {
   uint32_t target;
   target = RAIL_GetTime() + dt;
   while(RAIL_GetTime() < target);
 }
+/*---------------------------------------------------------------------------*/
+void
+clock_delay(unsigned int delay)
+{
+  clock_delay_usec((uint16_t)delay);
+}
+/*---------------------------------------------------------------------------*/

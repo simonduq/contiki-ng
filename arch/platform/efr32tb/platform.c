@@ -29,6 +29,9 @@
  */
 
 #include "contiki.h"
+#include "dev/leds.h"
+#include "dev/serial-line.h"
+#include "lib/sensors.h"
 #include "net/netstack.h"
 #include "net/mac/framer/frame802154.h"
 #include <em_device.h>
@@ -36,14 +39,11 @@
 #include <em_cmu.h>
 #include <em_emu.h>
 #include <em_usart.h>
-#include "em_system.h"
-#include "dev/serial-line.h"
-#include "lib/sensors.h"
+#include <em_system.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "leds.h"
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #include "sys/log.h"
@@ -51,14 +51,12 @@
 #define LOG_LEVEL LOG_LEVEL_MAIN
 /*---------------------------------------------------------------------------*/
 /**
- * \brief Board specific iniatialisation
+ * \brief Board specific initialisation
  */
-
+void board_init(void);
 
 void dbg_init(void);
 void dbg_set_input_handler(int (* handler)(unsigned char c));
-
-void board_init(void);
 /*---------------------------------------------------------------------------*/
 static inline uint64_t
 swap_long(uint64_t val)
@@ -79,7 +77,7 @@ set_rf_params(void)
 
   NETSTACK_RADIO.set_value(RADIO_PARAM_PAN_ID, IEEE802154_PANID);
   NETSTACK_RADIO.set_value(RADIO_PARAM_16BIT_ADDR, short_addr);
-  NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, RF_CHANNEL);
+  NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, IEEE802154_DEFAULT_CHANNEL);
   NETSTACK_RADIO.set_object(RADIO_PARAM_64BIT_ADDR, linkaddr_node_addr.u8, 8);
 }
 /*---------------------------------------------------------------------------*/
@@ -137,7 +135,6 @@ platform_init_stage_two()
   uint64_t uid_net_order = swap_long(uid);
 
   dbg_init();
-  printf("DBG initialized **\n");
 
   /* linkaddr configuration */
   memcpy(linkaddr_node_addr.u8, &uid_net_order, LINKADDR_SIZE);
