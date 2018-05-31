@@ -50,7 +50,7 @@ decode_status(I2C_TransferReturn_TypeDef status)
   switch(status) {
     case i2cTransferInProgress:
     case i2cTransferDone:
-      return I2C_I2C_BUS_STATUS_OK;
+      return I2C_BUS_STATUS_OK;
     case i2cTransferNack:
       /* i2cTransferNack means NACK for address or data */
       return I2C_BUS_STATUS_DATA_NACK;
@@ -78,11 +78,11 @@ i2c_arch_lock(i2c_device_t *dev)
 
   if(dev->bus->lock && dev->bus->lock_device != dev) {
     PRINTF("I2C (%s): bus is locked\n", __func__);
-    return I2C_BUS_STATUS_I2C_BUS_LOCKED;
+    return I2C_BUS_STATUS_BUS_LOCKED;
   }
 
-  if(dev->speed != I2C_NORMAL_I2C_BUS_SPEED &&
-     dev->speed != I2C_FAST_I2C_BUS_SPEED) {
+  if(dev->speed != I2C_NORMAL_BUS_SPEED &&
+     dev->speed != I2C_FAST_BUS_SPEED) {
     PRINTF("I2C (%s): speed %" PRIu32 " is invalid\n", __func__, dev->speed);
     return I2C_BUS_STATUS_EINVAL;
   }
@@ -194,7 +194,7 @@ i2c_arch_read(i2c_device_t *dev, uint8_t *data, int len)
 
   while(ret == i2cTransferInProgress && timeout > 0) {
     //PRINTF("I2C RX: %d (%d)\n", ret, timeout);
-    clock_delay(200);
+    clock_delay_usec(1000); /* 1 msec wait */
     ret = I2C_Transfer(dev->bus->config.I2Cx);
     timeout--;
   }
@@ -235,7 +235,7 @@ i2c_arch_write(i2c_device_t *dev, const uint8_t *data, int len)
   //PRINTF("I2C Init TX: %d Addr:%x (len: %d)\n", ret, i2cTransfer.addr, len);
 
   while(ret == i2cTransferInProgress && timeout > 0) {
-    clock_delay(10);
+    clock_delay_usec(1000);
     ret = I2C_Transfer(dev->bus->config.I2Cx);
     timeout--;
   }

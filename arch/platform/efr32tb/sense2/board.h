@@ -103,9 +103,9 @@ extern const struct sensors_sensor button_right_sensor;
 #define BOARD_IMU_SPI_SCLK_PIN      2             /**< IMU SPI serial clock pin         */
 #define BOARD_IMU_SPI_CS_PIN        3             /**< IMU SPI chip select pin          */
 
-/* #define SI1133_I2C_BUS i2c1_bus */
-/* #define SI7021_I2C_BUS i2c1_bus */
-/* #define BAP_I2C_BUS    i2c1_bus */
+#define SI1133_I2C_BUS i2c1_bus
+#define SI7021_I2C_BUS i2c1_bus
+#define BMP_I2C_BUS    i2c1_bus
 
 /* Bit fields for PIC_REG_LED_CTRL */
 #define BOARD_PIC_REG_LED_CTRL_PWR_EN       0x01   /**< LED control register, Power enable bit        */

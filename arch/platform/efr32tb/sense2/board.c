@@ -33,9 +33,10 @@
 #include "em_cmu.h"
 #include "em_timer.h"
 #include "lib/sensors.h"
+#include "dev/i2c.h"
 #include "button-sensor.h"
 #include "gpiointerrupt.h"
-
+#include "bmp-driver.h"
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -46,11 +47,35 @@
 #include <stdio.h>
 #include "sys/ctimer.h"
 
+static struct ctimer periodic_timer;
+
 #define VCOM_ENABLE_PORT gpioPortA
 #define VCOM_ENABLE_PIN  5
 
-/*---------------------------------------------------------------------------*/
+i2c_bus_t i2c1_bus = {.lock_device = NULL,
+                      .lock = 0,
+                      .config = {.I2Cx = I2C1,
+                                 .sda_loc = _I2C_ROUTELOC0_SDALOC_LOC17,
+                                 .scl_loc = _I2C_ROUTELOC0_SCLLOC_LOC17},
+                    };
 
+
+/*---------------------------------------------------------------------------*/
+void
+handle_periodic_timer(void *p)
+{
+  int32_t temp;
+  uint32_t pressure;
+
+  bmp_get_temperature_pressure(&temp, &pressure);
+
+  printf("Sense2: Time is %d Temp:%d.%03d Pressure: %d.%03dB:%d\n",
+         (int) clock_time(),
+         (int) (temp / 1000),(int) (temp % 1000),
+         (int) (pressure / 1000),(int) (pressure % 1000),
+         button_left_sensor.value(0));
+  ctimer_reset(&periodic_timer);
+}
 /*---------------------------------------------------------------------------*/
 void button_sensor_button_irq(int button);
 
@@ -69,6 +94,7 @@ static void gpioInterruptHandler(uint8_t pin)
 void
 board_init(void)
 {
+  uint8_t devid;
   /* Enable GPIO clock */
   CMU_ClockEnable(cmuClock_GPIO, true);
   /* enavble GPIO interrupts */
@@ -87,6 +113,13 @@ board_init(void)
   GPIOINT_CallbackRegister(EXTI_BUTTON0, gpioInterruptHandler);
   GPIOINT_CallbackRegister(EXTI_BUTTON1, gpioInterruptHandler);
 
+  if(bmp_init(&devid)) {
+    LOG_WARN("failed to init BMP280 pressure sensor\n");
+  } else {
+    LOG_INFO("BMP devID: %d\n", devid);
+  }
+
+  ctimer_set(&periodic_timer, CLOCK_SECOND * 10, handle_periodic_timer, NULL);
 }
 
 /*---------------------------------------------------------------------------*/
