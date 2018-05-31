@@ -13,7 +13,7 @@ ifeq (${wildcard $(CONTIKI_CPU_ARM_COMMON)/cortex-m/CMSIS/core_cm4.h},)
 endif
 
 ifndef GECKO_SDK_VERSION
-  GECKO_SDK_VERSION := v2.1
+  GECKO_SDK_VERSION := v2.2
 endif
 
 ifndef GECKO_SDK_PATH
