@@ -203,7 +203,11 @@ def doParse(file):
 
     return dfs
 
-def outputStats(df, metric, agg, name, metricLabel = None):
+def outputStats(dfs, key, metric, agg, name, metricLabel = None):
+    if not key in dfs:
+        return
+
+    df = dfs[key]
     perNode = getattr(df.groupby("node")[metric], agg)()
     perTime = getattr(df.groupby([pd.Grouper(freq="2Min")])[metric], agg)()
 
@@ -240,23 +244,23 @@ def main():
     print("stats:")
 
     # Output relevant metrics
-    outputStats(dfs["packets"], "pdr", "mean", "Round-trip PDR (%)")
-    outputStats(dfs["packets"], "latency", "mean", "Round-trip latency (s)")
+    outputStats(dfs, "packets", "pdr", "mean", "Round-trip PDR (%)")
+    outputStats(dfs, "packets", "latency", "mean", "Round-trip latency (s)")
 
-    outputStats(dfs["energest"], "duty-cycle", "mean", "Radio duty cycle (%)")
-    outputStats(dfs["energest"], "channel-utilization", "mean", "Channel utilization (%)")
+    outputStats(dfs, "energest", "duty-cycle", "mean", "Radio duty cycle (%)")
+    outputStats(dfs, "energest", "channel-utilization", "mean", "Channel utilization (%)")
 
-    outputStats(dfs["ranks"], "rank", "mean", "RPL rank (ETX-128)")
-    outputStats(dfs["switches"], "pswitch", "count", "RPL parent switches (#)")
-    outputStats(dfs["trickle"], "trickle", "mean", "RPL Trickle period (min)")
+    outputStats(dfs, "ranks", "rank", "mean", "RPL rank (ETX-128)")
+    outputStats(dfs, "switches", "pswitch", "count", "RPL parent switches (#)")
+    outputStats(dfs, "trickle", "trickle", "mean", "RPL Trickle period (min)")
 
-    outputStats(dfs["DIS"], "message", "count", "RPL DIS sent (#)", "rpl-dis")
-    outputStats(dfs["unicast-DIO"], "message", "count", "RPL uDIO sent (#)", "rpl-udio")
-    outputStats(dfs["multicast-DIO"], "message", "count", "RPL mDIO sent (#)", "rpl-mdio")
-    outputStats(dfs["DAO"], "message", "count", "RPL DAO sent (#)", "rpl-dao")
-    outputStats(dfs["DAO-ACK"], "message", "count", "RPL DAO-ACK sent (#)", "rpl-daoack")
+    outputStats(dfs, "DIS", "message", "count", "RPL DIS sent (#)", "rpl-dis")
+    outputStats(dfs, "unicast-DIO", "message", "count", "RPL uDIO sent (#)", "rpl-udio")
+    outputStats(dfs, "multicast-DIO", "message", "count", "RPL mDIO sent (#)", "rpl-mdio")
+    outputStats(dfs, "DAO", "message", "count", "RPL DAO sent (#)", "rpl-dao")
+    outputStats(dfs, "DAO-ACK", "message", "count", "RPL DAO-ACK sent (#)", "rpl-daoack")
 
-    outputStats(dfs["topology"], "hops", "mean", "RPL hop count (#)")
-    outputStats(dfs["topology"], "children", "mean", "RPL children count (#)")
+    outputStats(dfs, "topology", "hops", "mean", "RPL hop count (#)")
+    outputStats(dfs, "topology", "children", "mean", "RPL children count (#)")
 
 main()
