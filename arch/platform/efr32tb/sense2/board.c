@@ -69,7 +69,7 @@ handle_periodic_timer(void *p)
 
   bmp_get_temperature_pressure(&temp, &pressure);
 
-  printf("Sense2: Time is %d Temp:%d.%03d Pressure: %d.%03dB:%d\n",
+  printf("Sense2: Time is %d Temp:%d.%03d Pressure: %d.%03d  BLeft:%d\n",
          (int) clock_time(),
          (int) (temp / 1000),(int) (temp % 1000),
          (int) (pressure / 1000),(int) (pressure % 1000),

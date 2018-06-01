@@ -36,6 +36,13 @@
 #define PLATFORM_HAS_RADIO    1
 #define PLATFORM_HAS_SENSORS  0
 
+#define LEDS_CONF_LEGACY_API  1
+#define LEDS_CONF_RED    1
+#define LEDS_CONF_GREEN  2
+
+#define GPIO_HAL_CONF_PIN_COUNT 64
+#define GPIO_EFR32_CONFIG {}
+
 /*
  * Override button symbols from dev/button-sensor.h, for the examples that
  * include it
