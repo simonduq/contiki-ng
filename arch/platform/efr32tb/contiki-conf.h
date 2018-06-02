@@ -55,7 +55,10 @@
  * @{
  */
 
-#define RTIMER_CONF_CLOCK_SIZE 8
+#define RTIMER_CONF_CLOCK_SIZE 2
+/* 38.4 MHz divided by 1024 */
+#define RTIMER_ARCH_SECOND  (38400000UL / 1024)
+
 
 /* Clock (time) comparison macro */
 #define CLOCK_LT(a, b)  ((int64_t)((a) - (b)) < 0)
@@ -64,7 +67,6 @@ typedef uint64_t clock_time_t;
 typedef uint32_t uip_stats_t;
 
 #define CLOCK_CONF_SECOND   1000
-#define RTIMER_ARCH_SECOND  32768
 
 /** @} */
 

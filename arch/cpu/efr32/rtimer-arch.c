@@ -38,23 +38,17 @@
 #include <em_timer.h>
 #include <em_core.h>
 #include "sys/energest.h"
+#include <stdio.h>
 
 #include "rtimer-arch.h"
 /*---------------------------------------------------------------------------*/
 void TIMER0_IRQHandler(void) __attribute__((interrupt));
-
-static volatile rtimer_clock_t g_rticks = 0;
-static volatile rtimer_clock_t g_next = 0;
 /*---------------------------------------------------------------------------*/
 void
 TIMER0_IRQHandler(void)
 {
-  ++g_rticks;
-  if(g_rticks == g_next) {
-    g_next = 0;
-    rtimer_run_next();
-  }
-  TIMER_IntClear(TIMER0, TIMER_IF_OF);
+  rtimer_run_next();
+  TIMER_IntClear(TIMER0, TIMER_IF_CC0);
   NVIC_ClearPendingIRQ(TIMER0_IRQn);
 }
 /*---------------------------------------------------------------------------*/
@@ -67,12 +61,16 @@ rtimer_arch_init(void)
   TIMER_IntClear(TIMER0, TIMER_IF_OF);
   NVIC_ClearPendingIRQ(TIMER0_IRQn);
   NVIC_SetPriority(TIMER0_IRQn, 0);
-  TIMER_IntEnable(TIMER0, TIMER_IF_OF);
+  TIMER_IntEnable(TIMER0, TIMER_IF_CC0);
   NVIC_EnableIRQ(TIMER0_IRQn);
 
   TIMER_Init_TypeDef init = TIMER_INIT_DEFAULT;
+  init.prescale = timerPrescale1024;
   TIMER_Init(TIMER0, &init);
-  TIMER_TopSet(TIMER0, CMU_ClockFreqGet(cmuClock_HFPER) / RTIMER_ARCH_SECOND);
+
+  TIMER_InitCC_TypeDef initCC0 = TIMER_INITCC_DEFAULT;
+  initCC0.mode = timerCCModeCompare;
+  TIMER_InitCC(TIMER0, 0, &initCC0);
 }
 /*---------------------------------------------------------------------------*/
 rtimer_clock_t
@@ -80,7 +78,7 @@ rtimer_arch_now(void)
 {
   rtimer_clock_t now;
   CORE_ATOMIC_SECTION(
-    now = g_rticks;
+     now = TIMER_CounterGet(TIMER0);
   )
   return now;
 }
@@ -89,7 +87,7 @@ void
 rtimer_arch_schedule(rtimer_clock_t t)
 {
   CORE_ATOMIC_SECTION(
-    g_next = t;
+       TIMER_CompareSet(TIMER0, 0, t);
   )
 }
 /*---------------------------------------------------------------------------*/
