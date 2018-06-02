@@ -5,7 +5,9 @@ ifndef CONTIKI
 endif
 
 ifndef GECKO_SDK_PATH
-  GECKO_SDK_PATH := $(CONTIKI)/gecko_sdk_suite
+  ifneq (${wildcard $(CONTIKI)/../gecko_sdk_suite},)
+    GECKO_SDK_PATH := $(CONTIKI)/../gecko_sdk_suite
+  endif
 endif
 
 CLEAN += *.efr32tb
