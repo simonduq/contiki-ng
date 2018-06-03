@@ -106,6 +106,62 @@ typedef enum
 
 volatile tx_status_t tx_status;
 
+typedef struct
+{
+  int16_t rssi;
+  int16_t lqi;
+  uint8_t len;
+  uint8_t buf[128];
+} rx_buffer_t;
+
+
+/* Allocate 4 rx buffers for bursty receives */
+#define RX_BUF_COUNT 4
+rx_buffer_t rx_buf[RX_BUF_COUNT];
+volatile int next_read = 0;
+volatile int next_write = 0;
+
+int
+has_packet(void)
+{
+  return rx_buf[next_read].len > 0;
+}
+
+rx_buffer_t *
+get_full_rx_buf(void)
+{
+  int nr;
+  if(rx_buf[nr = next_read].len > 0) {
+    /* return buffert and intrease last_read as it was full. */
+    /* Write will have to check if it can allocate new buffers when
+       increating the write pos */
+    next_read = (next_read + 1) % RX_BUF_COUNT;
+    return &rx_buf[nr];
+  }
+  /* nothing to read */
+  return NULL;
+}
+
+rx_buffer_t *
+get_empty_rx_buf(void)
+{
+  int nw;
+  /* if the next write buf is empty is should be ok to write to it */
+  if(rx_buf[nw = next_write].len == 0) {
+    next_write = (next_write + 1) % RX_BUF_COUNT;
+    return &rx_buf[nw];
+  }
+  /* Full - nothing to write... */
+  return NULL;
+}
+
+void
+free_rx_buf(rx_buffer_t *rx_buf)
+{
+  /* set len to zero */
+  rx_buf->len = 0;
+}
+
 enum
 {
     EFR32_RECEIVE_SENSITIVITY = -100, // dBm
@@ -230,10 +286,60 @@ init(void)
 }
 /*---------------------------------------------------------------------------*/
 static void
+move_to_rx_buffer(RAIL_Handle_t aRailHandle)
+{
+  RAIL_RxPacketHandle_t  packetHandle = RAIL_RX_PACKET_HANDLE_INVALID;
+  RAIL_RxPacketInfo_t    packetInfo;
+  RAIL_RxPacketDetails_t packetDetails;
+  RAIL_Status_t          status;
+  uint16_t               length = 0;
+
+  packetHandle = RAIL_GetRxPacketInfo(sRailHandle, RAIL_RX_PACKET_HANDLE_OLDEST, &packetInfo);
+
+  packetDetails.timeReceived.timePosition     = RAIL_PACKET_TIME_INVALID;
+  packetDetails.timeReceived.totalPacketBytes = 0;
+  status = RAIL_GetRxPacketDetails(sRailHandle, packetHandle, &packetDetails);
+  if(status != RAIL_STATUS_NO_ERROR) {
+    PRINTF("Failed to get packet details\n");
+  } else {
+    rx_buffer_t *rx_buf;
+    length = packetInfo.packetBytes - 1;
+    PRINTF("EFR32 Radio: rcv:%d\n", length);
+
+    /* skip length byte */
+    packetInfo.firstPortionData++;
+    packetInfo.firstPortionBytes--;
+    packetInfo.packetBytes--;
+
+    rx_buf = get_empty_rx_buf();
+    if(rx_buf != NULL) {
+      rx_buf->len = length;
+
+      /* read packet into buffert */
+      memcpy(rx_buf->buf, packetInfo.firstPortionData,
+             packetInfo.firstPortionBytes);
+      memcpy(rx_buf->buf + packetInfo.firstPortionBytes,
+             packetInfo.lastPortionData,
+             packetInfo.packetBytes - packetInfo.firstPortionBytes);
+
+      rx_buf->rssi = packetDetails.rssi;
+      rx_buf->lqi = packetDetails.lqi;
+    } else {
+      PRINTF("EFR32 Radio: Could not allocate rx_buf\n");
+    }
+  }
+
+  if(packetHandle != RAIL_RX_PACKET_HANDLE_INVALID) {
+    /* all ok - exit with release */
+    RAIL_ReleaseRxPacket(sRailHandle, packetHandle);
+  }
+}
+
+static void
 RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
 {
 
-  PRINTF("EFR32 Radio - callback event: %d\n", (int) aEvents);
+  PRINTF("EFR32 Radio CB: %x\n", (int) aEvents);
 
   if(aEvents & (RAIL_EVENT_TX_ABORTED | RAIL_EVENT_TX_BLOCKED | RAIL_EVENT_TX_UNDERFLOW)) {
     tx_status = TX_ERROR;
@@ -244,10 +350,9 @@ RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
   }
 
   if(aEvents & RAIL_EVENT_RX_PACKET_RECEIVED) {
-    PRINTF("EFR32 Radio: packet receive event - polling process\n");
-    packet_received = 1;
+    PRINTF("EFR32 Radio: Receive event - poll.\n");
+    move_to_rx_buffer(aRailHandle);
     process_poll(&radio_proc);
-    RAIL_HoldRxPacket(aRailHandle);
   }
 
   if(aEvents & RAIL_EVENT_TX_PACKET_SENT) {
@@ -446,50 +551,27 @@ receiving_packet(void)
 static int
 read(void *buf, unsigned short bufsize)
 {
-  RAIL_RxPacketHandle_t  packetHandle = RAIL_RX_PACKET_HANDLE_INVALID;
-  RAIL_RxPacketInfo_t    packetInfo;
-  RAIL_RxPacketDetails_t packetDetails;
-  RAIL_Status_t          status;
-  uint16_t               length = 0;
-
-  packetHandle = RAIL_GetRxPacketInfo(sRailHandle, RAIL_RX_PACKET_HANDLE_OLDEST, &packetInfo);
-
-  packetDetails.timeReceived.timePosition     = RAIL_PACKET_TIME_INVALID;
-  packetDetails.timeReceived.totalPacketBytes = 0;
-  status = RAIL_GetRxPacketDetails(sRailHandle, packetHandle, &packetDetails);
-  if(status != RAIL_STATUS_NO_ERROR) {
-    PRINTF("Failed to get packet details\n");
-  } else {
-    length = packetInfo.packetBytes - 1;
-    PRINTF("EFR32 Radio: received data:%d\n", length);
-
-    /* skip length byte */
-    packetInfo.firstPortionData++;
-    packetInfo.firstPortionBytes--;
-    packetInfo.packetBytes--;
-
-    /* read packet into buffert */
-    memcpy(buf, packetInfo.firstPortionData, packetInfo.firstPortionBytes);
-    memcpy(buf + packetInfo.firstPortionBytes, packetInfo.lastPortionData,
-           packetInfo.packetBytes - packetInfo.firstPortionBytes);
-
-    packetbuf_set_attr(PACKETBUF_ATTR_RSSI, packetDetails.rssi);
-    packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, packetDetails.lqi);
+  rx_buffer_t *rx_buf;
+  int len;
+  rx_buf = get_full_rx_buf();
+  if(rx_buf == NULL) {
+    return 0;
   }
+  PRINTF("EFR32 Radio Read: %d\n", rx_buf->len);
+  len = rx_buf->len;
 
-  if(packetHandle != RAIL_RX_PACKET_HANDLE_INVALID) {
-    /* all ok - exit with release */
-    RAIL_ReleaseRxPacket(sRailHandle, packetHandle);
-    /* return bytes without length */
-    return length;
-  }
-  return 0;
+  /* copy packet */
+  memcpy(buf, rx_buf->buf, len);
+  packetbuf_set_attr(PACKETBUF_ATTR_RSSI, rx_buf->rssi);
+  packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, rx_buf->lqi);
+  free_rx_buf(rx_buf);
+  return len;
 }
 /*---------------------------------------------------------------------------*/
 static int
 pending_packet(void)
 {
-  return packet_received;
+  return has_packet();
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(radio_proc, ev, data)
@@ -507,17 +589,17 @@ PROCESS_THREAD(radio_proc, ev, data)
     if(etimer_expired(&periodic)) {
     }
 
-    if(packet_received) {
+    if(has_packet()) {
       packetbuf_clear();
       len = read(packetbuf_dataptr(), PACKETBUF_SIZE);
 
       if(len > 0) {
         packetbuf_set_datalen(len);
         NETSTACK_MAC.input();
+        /* poll again to check if there is more to read out */
+        //process_poll(&radio_proc);
       }
-      packet_received = 0;
     }
-
   }
   PROCESS_END();
 }
