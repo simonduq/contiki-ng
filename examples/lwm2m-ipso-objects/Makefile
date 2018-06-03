@@ -12,6 +12,6 @@ MODULES += os/services/ipso-objects
 
 CONTIKI=../..
 include $(CONTIKI)/Makefile.identify-target
-MODULES_REL += $(TARGET)
+MODULES_REL += arch/platform/$(TARGET)
 
 include $(CONTIKI)/Makefile.include

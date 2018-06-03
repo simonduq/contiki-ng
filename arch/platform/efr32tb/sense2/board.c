@@ -36,7 +36,7 @@
 #include "dev/i2c.h"
 #include "button-sensor.h"
 #include "gpiointerrupt.h"
-#include "bmp-driver.h"
+#include "bmp-280-sensor.h"
 #include "rgbleds.h"
 
 /*---------------------------------------------------------------------------*/
@@ -69,7 +69,10 @@ handle_periodic_timer(void *p)
   int32_t temp;
   uint32_t pressure;
 
-  bmp_get_temperature_pressure(&temp, &pressure);
+  temp = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_TEMP);
+  pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
+
+  //  bmp_get_temperature_pressure(&temp, &pressure);
 
   printf("Sense2: Time is %d Temp:%d.%03d Pressure: %d.%03d  BLeft:%d\n",
          (int) clock_time(),
@@ -104,7 +107,6 @@ static void gpioInterruptHandler(uint8_t pin)
 void
 board_init(void)
 {
-  uint8_t devid;
   /* Enable GPIO clock */
   CMU_ClockEnable(cmuClock_GPIO, true);
   /* enavble GPIO interrupts */
@@ -123,11 +125,7 @@ board_init(void)
   GPIOINT_CallbackRegister(EXTI_BUTTON0, gpioInterruptHandler);
   GPIOINT_CallbackRegister(EXTI_BUTTON1, gpioInterruptHandler);
 
-  if(bmp_init(&devid)) {
-    LOG_WARN("failed to init BMP280 pressure sensor\n");
-  } else {
-    LOG_INFO("BMP devID: %d\n", devid);
-  }
+  SENSORS_ACTIVATE(bmp_280_sensor);
 
   rgbleds_init();
 
@@ -136,5 +134,5 @@ board_init(void)
 
 /*---------------------------------------------------------------------------*/
 /** \brief Exports a global symbol to be used by the sensor API */
-SENSORS(&button_left_sensor, &button_right_sensor);
+SENSORS(&button_left_sensor, &button_right_sensor, &bmp_280_sensor);
 /*---------------------------------------------------------------------------*/

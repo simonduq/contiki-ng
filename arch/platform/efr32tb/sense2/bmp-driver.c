@@ -151,7 +151,6 @@ uint32_t bmp_get_temperature_pressure(int32_t *temp, uint32_t *pressure)
   compPressure = compPressure * 10;
   *pressure = compPressure / 256;
 
-
   return BMP_OK;
 }
 
