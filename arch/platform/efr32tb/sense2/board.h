@@ -123,8 +123,8 @@ extern const struct sensors_sensor button_right_sensor;
 #define BOARD_PIC_REG_LED_CTRL_LED_MASK     0xf0   /**< LED control register, LED control mask        */
 #define BOARD_PIC_REG_LED_CTRL_LED_SHIFT    4      /**< LED control register, LED control shift value */
 
-#define BOARD_RGBLED_TIMER        (TIMER0)        /**< RGB LED PWM control timer        */
-#define BOARD_RGBLED_CMU_CLK      cmuClock_TIMER0 /**< RGB LED PWM control clock source */
+#define BOARD_RGBLED_TIMER        (TIMER1)        /**< RGB LED PWM control timer        */
+#define BOARD_RGBLED_CMU_CLK      cmuClock_TIMER1 /**< RGB LED PWM control clock source */
 #define BOARD_RGBLED_RED_PORT     gpioPortD       /**< RGB LED Red port                 */
 #define BOARD_RGBLED_RED_PIN      11              /**< RGB LED Red pin                  */
 #define BOARD_RGBLED_RED_CCLOC    19              /**< RGB LED Red CC location          */

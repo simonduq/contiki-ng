@@ -37,6 +37,7 @@
 #include "button-sensor.h"
 #include "gpiointerrupt.h"
 #include "bmp-driver.h"
+#include "rgbleds.h"
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -61,6 +62,7 @@ i2c_bus_t i2c1_bus = {.lock_device = NULL,
 
 
 /*---------------------------------------------------------------------------*/
+int enable = 0;
 static void
 handle_periodic_timer(void *p)
 {
@@ -74,6 +76,14 @@ handle_periodic_timer(void *p)
          (int) (temp / 1000),(int) (temp % 1000),
          (int) (pressure / 1000),(int) (pressure % 1000),
          button_left_sensor.value(0));
+
+  rgbleds_enable(enable++ & 0xf);
+
+  rgbleds_setcolor(clock_time() & 0xffff,
+                  (clock_time() >> 2) & 0xffff,
+                  (clock_time() >> 4) & 0xffff);
+
+
   ctimer_reset(&periodic_timer);
 }
 /*---------------------------------------------------------------------------*/
@@ -119,7 +129,9 @@ board_init(void)
     LOG_INFO("BMP devID: %d\n", devid);
   }
 
-  ctimer_set(&periodic_timer, CLOCK_SECOND * 10, handle_periodic_timer, NULL);
+  rgbleds_init();
+
+  ctimer_set(&periodic_timer, CLOCK_SECOND * 1, handle_periodic_timer, NULL);
 }
 
 /*---------------------------------------------------------------------------*/
