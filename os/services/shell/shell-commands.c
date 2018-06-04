@@ -48,6 +48,7 @@
 #include "sys/log.h"
 #include "dev/watchdog.h"
 #include "dev/radio.h"
+#include "dev/leds.h"
 #include "net/ipv6/uip.h"
 #include "net/ipv6/uiplib.h"
 #include "net/ipv6/uip-icmp6.h"
@@ -1043,6 +1044,40 @@ PT_THREAD(cmd_radio(struct pt *pt, shell_output_func output, char *args))
 }
 #endif /* PLATFORM_HAS_RADIO */
 /*---------------------------------------------------------------------------*/
+#if PLATFORM_HAS_LEDS || LEDS_COUNT > 0
+static
+PT_THREAD(cmd_leds(struct pt *pt, shell_output_func output, char *args))
+{
+  char *cmd;
+  char *next_args;
+  int led;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+
+  /* Get first arg  */
+  SHELL_ARGS_NEXT(cmd, next_args);
+  /* Get second arg  */
+  SHELL_ARGS_NEXT(args, next_args);
+
+  /* no args... just print status */
+  if(cmd == NULL || args == NULL || !strcmp(args, "help")) {
+    SHELL_OUTPUT(output, "Usage: leds [on/off led]\n");
+  } else if(shell_dectoi(args, &led) == args) {
+    SHELL_OUTPUT(output, "Please specify led number.\n");
+  } else if(!strcmp(cmd, "on")) {
+    leds_on(led);
+  } else if(!strcmp(cmd, "off")) {
+    leds_off(led);
+  } else {
+    SHELL_OUTPUT(output, "Invalid command: %s\n", cmd);
+  }
+
+  PT_END(pt);
+}
+#endif /* PLATFORM_HAS_LEDS || LEDS_COUNT > 0 */
+/*---------------------------------------------------------------------------*/
 void
 shell_commands_init(void)
 {
@@ -1088,6 +1123,9 @@ struct shell_command_t shell_commands[] = {
 #if PLATFORM_HAS_RADIO
   { "radio",                cmd_radio,                "'> radio help': Shows radio command usage." },
 #endif /* PLATFORM_HAS_RADIO */
+#if PLATFORM_HAS_LEDS || LEDS_COUNT > 0
+  { "leds",                 cmd_leds,                 "'> leds [on/off led]': Controls the leds." },
+#endif /* PLATFORM_HAS_LEDS || LEDS_COUNT > 0 */
 
   { NULL, NULL, NULL },
 };
