@@ -108,7 +108,7 @@ input_packet(void)
     }
 #endif /* CSMA_SEND_SOFT_ACK */
     if(!duplicate) {
-      LOG_INFO("received packet from ");
+      LOG_INFO("received %s packet from ", linkaddr_cmp(packetbuf_addr(PACKETBUF_ADDR_RECEIVER), &linkaddr_null) ? "broadcast" : "unicast");
       LOG_INFO_LLADDR(packetbuf_addr(PACKETBUF_ADDR_SENDER));
       LOG_INFO_(", seqno %u, len %u\n", packetbuf_attr(PACKETBUF_ATTR_MAC_SEQNO), packetbuf_datalen());
       NETSTACK_NETWORK.input();
