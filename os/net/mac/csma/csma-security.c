@@ -142,7 +142,7 @@ aead(uint8_t hdrlen, int forward, int miclen)
     key_index = packetbuf_attr(PACKETBUF_ATTR_KEY_INDEX);
   }
 
-  if(key_index > CSMA_LLSEC_MAXKEYS) {
+  if(key_index >= CSMA_LLSEC_MAXKEYS) {
     LOG_ERR("Key not available: %u\n", key_index);
     return 0;
   }
