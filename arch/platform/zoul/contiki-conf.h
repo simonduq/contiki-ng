@@ -94,7 +94,7 @@
  *
  * @{
  */
-/* Configure CSMA for when it's selected */
+#define PLATFORM_HAS_RADIO           1
 
 #if CC1200_CONF_SUBGHZ_50KBPS_MODE
 #define NETSTACK_CONF_RADIO                                 cc1200_driver
@@ -103,10 +103,11 @@
 #define CC1200_CONF_USE_GPIO2                               0
 #define CC1200_CONF_USE_RX_WATCHDOG                         0
 
+/* Configure CSMA for when it's selected */
 #define CSMA_CONF_ACK_WAIT_TIME                          (RTIMER_SECOND / 200)
 #define CSMA_CONF_AFTER_ACK_DETECTED_WAIT_TIME           (RTIMER_SECOND / 1500)
 
-#endif
+#endif /* CC1200_CONF_SUBGHZ_50KBPS_MODE */
 
 /* This can be overriden to use the cc1200_driver instead */
 #ifndef NETSTACK_CONF_RADIO
