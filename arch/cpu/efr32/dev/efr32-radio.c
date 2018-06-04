@@ -105,6 +105,7 @@ typedef enum
 } tx_status_t;
 
 volatile tx_status_t tx_status;
+uint64_t last_rx_time = 0;
 
 typedef struct
 {
@@ -298,6 +299,10 @@ move_to_rx_buffer(RAIL_Handle_t aRailHandle)
 
   packetDetails.timeReceived.timePosition     = RAIL_PACKET_TIME_INVALID;
   packetDetails.timeReceived.totalPacketBytes = 0;
+
+  /* to avoid sending to soon after receive - avoiding to crash an ACK */
+  last_rx_time = RAIL_GetTime();
+
   status = RAIL_GetRxPacketDetails(sRailHandle, packetHandle, &packetDetails);
   if(status != RAIL_STATUS_NO_ERROR) {
     PRINTF("Failed to get packet details\n");
@@ -338,8 +343,6 @@ move_to_rx_buffer(RAIL_Handle_t aRailHandle)
 static void
 RAILCb_Generic(RAIL_Handle_t aRailHandle, RAIL_Events_t aEvents)
 {
-
-  PRINTF("EFR32 Radio CB: %x\n", (int) aEvents);
 
   if(aEvents & (RAIL_EVENT_TX_ABORTED | RAIL_EVENT_TX_BLOCKED | RAIL_EVENT_TX_UNDERFLOW)) {
     tx_status = TX_ERROR;
@@ -492,6 +495,11 @@ transmit(unsigned short transmit_len)
     return RADIO_TX_ERR;
   }
 
+  /* Avoid being in anything else than IDLE when reading out packet */
+  while(((uint32_t)(RAIL_GetTime() - last_rx_time)) < 1000) {
+    /* Wait for transmission of AutoACK to finish */
+  }
+
   tx_status = TX_SENDING;
   PRINTF("EFR32 Radio: Sending packet %d bytes\n", transmit_len);
 
@@ -507,7 +515,7 @@ transmit(unsigned short transmit_len)
 
   if(tx_status == TX_SENT) {
     /* OK! */
-    PRINTF("EFR32: OK - packet sent!?.\n");
+    PRINTF("EFR32: OK - packet sent.\n");
   } else {
     PRINTF("EFR32: TX error %d\n", tx_status);
   }
@@ -597,7 +605,7 @@ PROCESS_THREAD(radio_proc, ev, data)
         packetbuf_set_datalen(len);
         NETSTACK_MAC.input();
         /* poll again to check if there is more to read out */
-        //process_poll(&radio_proc);
+        process_poll(&radio_proc);
       }
     }
   }
