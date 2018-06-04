@@ -133,10 +133,12 @@ static void
 init(void)
 {
 
+#if LLSEC802154_ENABLED
 #ifdef CSMA_LLSEC_DEFAULT_KEY0
   uint8_t key[16] = CSMA_LLSEC_DEFAULT_KEY0;
   csma_security_set_key(0, key);
 #endif
+#endif /* LLSEC802154_ENABLED */
 
   csma_output_init();
   on();
