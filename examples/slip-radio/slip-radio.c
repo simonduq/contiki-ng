@@ -137,25 +137,14 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
     /* should send out stuff to the radio - ignore it as IP */
     /* --- s e n d --- */
     if(data[1] == 'S') {
-      int pos;
-      packet_ids[packet_pos] = data[2];
-
-      packetbuf_clear();
-      pos = packetutils_deserialize_atts(&data[3], len - 3);
-      if(pos < 0) {
-        LOG_ERR("illegal packet attributes\n");
+      if(packetutils_deserialize_packetbuf(&data[3], len - 3) <= 0) {
+        LOG_ERR("illegal packet format\n");
         return 1;
       }
-      pos += 3;
-      len -= pos;
-      if(len > PACKETBUF_SIZE) {
-        len = PACKETBUF_SIZE;
-      }
-      memcpy(packetbuf_dataptr(), &data[pos], len);
-      packetbuf_set_datalen(len);
 
-      LOG_DBG("sending %u (%d bytes)\n",
-              data[2], packetbuf_datalen());
+      packet_ids[packet_pos] = data[2];
+
+      LOG_DBG("sending %u (%d bytes)\n", data[2], packetbuf_datalen());
 
       /* parse frame before sending to get addresses, etc. */
       parse_frame();
@@ -170,7 +159,7 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
     } else if(data[1] == 'V') {
       int type = ((uint16_t)data[2] << 8) | data[3];
       int value = ((uint16_t)data[4] << 8) | data[5];
-      int param = type; /* packetutils_to_radio_param(type); */
+      int param = packetutils_to_radio_param(type);
       if(param < 0) {
         printf("radio: unknown parameter %d (can not set to %d)\n", type, value);
       } else {
@@ -202,22 +191,24 @@ slip_radio_cmd_handler(const uint8_t *data, int len)
     } else if(data[1] == 'V') {
       /* ask the radio about the specific parameter and send it back... */
       int type = ((uint16_t)data[2] << 8) | data[3];
-      int value;
-      int param = type; /* packetutils_to_radio_param(type); */
+      int param = packetutils_to_radio_param(type);
+      radio_value_t value;
+
       if(param < 0) {
         printf("radio: unknown parameter %d\n", type);
+      } else if(NETSTACK_RADIO.get_value(param, &value) == RADIO_RESULT_OK) {
+        uip_buf[0] = '!';
+        uip_buf[1] = 'V';
+        uip_buf[2] = type >> 8;
+        uip_buf[3] = type & 0xff;
+        uip_buf[4] = value >> 8;
+        uip_buf[5] = value & 0xff;
+        uip_len = 6;
+        cmd_send(uip_buf, uip_len);
+      } else {
+        printf("radio: could not get value for %d\n", param);
       }
-
-      NETSTACK_RADIO.get_value(param, &value);
-
-      uip_buf[0] = '!';
-      uip_buf[1] = 'V';
-      uip_buf[2] = type >> 8;
-      uip_buf[3] = type & 0xff;
-      uip_buf[4] = value >> 8;
-      uip_buf[5] = value & 0xff;
-      uip_len = 6;
-      cmd_send(uip_buf, uip_len);
+      return 1;
     }
   }
   return 0;

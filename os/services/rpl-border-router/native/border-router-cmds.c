@@ -42,9 +42,11 @@
 #include "dev/serial-line.h"
 #include "net/routing/routing.h"
 #include "net/ipv6/uiplib.h"
-#include <string.h>
+#include "packetutils.h"
 #include "shell.h"
+#include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -108,6 +110,49 @@ dectoi(const uint8_t *buf, int len, int *v)
   return buf;
 }
 /*---------------------------------------------------------------------------*/
+static bool
+request_radio_param(radio_param_t param)
+{
+  uint8_t set_param[4];
+  int16_t type;
+
+  type = packetutils_from_radio_param(param);
+  if(type < 0) {
+    /* Radio parameter not supported */
+    return false;
+  }
+
+  set_param[0] = '?';
+  set_param[1] = 'V';
+  set_param[2] = (type >> 8) & 0xff;
+  set_param[3] = type & 0xff;
+  write_to_slip(set_param, sizeof(set_param));
+  return true;
+}
+/*---------------------------------------------------------------------------*/
+static bool
+set_radio_param(radio_param_t param, radio_value_t value)
+{
+  uint8_t set_param[6];
+  int16_t type;
+
+  type = packetutils_from_radio_param(param);
+  if(type < 0) {
+    /* Radio parameter not supported */
+    return false;
+  }
+
+  set_param[0] = '!';
+  set_param[1] = 'V';
+  set_param[2] = (type >> 8) & 0xff;
+  set_param[3] = type & 0xff;
+  set_param[4] = (value >> 8) & 0xff;
+  set_param[5] = (value & 0xff);
+  write_to_slip(set_param, sizeof(set_param));
+  return true;
+}
+/*---------------------------------------------------------------------------*/
+
 
 /*---------------------------------------------------------------------------*/
 /* TODO: the below code needs some way of identifying from where the command */
@@ -128,23 +173,20 @@ border_router_cmd_handler(const uint8_t *data, int len)
         return 1;
       case 'C': {
         /* send on a set-param thing! */
-        uint8_t set_param[] = {'!', 'V', 0, RADIO_PARAM_CHANNEL, 0, 0 };
         int channel = -1;
         dectoi(&data[2], len - 2, &channel);
         if(channel >= 0) {
-          set_param[5] = channel & 0xff;
-          write_to_slip(set_param, sizeof(set_param));
+          set_radio_param(RADIO_PARAM_CHANNEL, channel & 0xff);
         }
         return 1;
       }
       case 'P': {
         /* send on a set-param thing! */
-        uint8_t set_param[] = {'!', 'V', 0, RADIO_PARAM_PAN_ID, 0, 0 };
-        int pan_id;
+        int pan_id = -1;
         dectoi(&data[2], len - 2, &pan_id);
-        set_param[4] = (pan_id >> 8) & 0xff;
-        set_param[5] = pan_id & 0xff;
-        write_to_slip(set_param, sizeof(set_param));
+        if(pan_id >= 0) {
+          set_radio_param(RADIO_PARAM_PAN_ID, pan_id & 0xffff);
+        }
         return 1;
       }
       default:
@@ -157,14 +199,21 @@ border_router_cmd_handler(const uint8_t *data, int len)
         LOG_DBG("Setting MAC address\n");
         border_router_set_mac(&data[2]);
         return 1;
-      case 'V':
-        if(data[3] == RADIO_PARAM_CHANNEL) {
-          printf("Channel is %d\n", data[5]);
-        }
-        if(data[3] == RADIO_PARAM_PAN_ID) {
-          printf("PAN_ID is 0x%04x\n", (data[4] << 8) + data[5]);
+      case 'V': {
+        int type = ((uint16_t)data[2] << 8) | data[3];
+        int param = packetutils_to_radio_param(type);
+        int value = ((uint16_t)data[4] << 8) | data[5];
+        if(param < 0) {
+          printf("unknown radio parameter: %d\n", type);
+        } else if(param == RADIO_PARAM_CHANNEL) {
+          printf("Channel is %d\n", value);
+        } else if(param == RADIO_PARAM_PAN_ID) {
+          printf("PAN_ID is 0x%04x\n", value & 0xffff);
+        } else if(param == RADIO_PARAM_RSSI) {
+          printf("RSSI: %d\n", (int8_t)(value & 0xff));
         }
         return 1;
+      }
       case 'R':
         LOG_DBG("Packet data report for sid:%d st:%d tx:%d\n",
                data[2], data[3], data[4]);
@@ -191,13 +240,11 @@ border_router_cmd_handler(const uint8_t *data, int len)
       return 1;
     } else if(data[1] == 'C' && command_context == CMD_CONTEXT_STDIO) {
       /* send on a set-param thing! */
-      uint8_t set_param[] = {'?', 'V', 0, RADIO_PARAM_CHANNEL};
-      write_to_slip(set_param, sizeof(set_param));
+      request_radio_param(RADIO_PARAM_CHANNEL);
       return 1;
     } else if(data[1] == 'P' && command_context == CMD_CONTEXT_STDIO) {
       /* send on a set-param thing! */
-      uint8_t set_param[] = {'?', 'V', 0, RADIO_PARAM_PAN_ID};
-      write_to_slip(set_param, sizeof(set_param));
+      request_radio_param(RADIO_PARAM_PAN_ID);
       return 1;
     } else if(data[1] == 'S') {
       border_router_print_stat();

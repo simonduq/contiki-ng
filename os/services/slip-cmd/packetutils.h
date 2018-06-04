@@ -30,8 +30,59 @@
 #ifndef PACKETUTILS_H_
 #define PACKETUTILS_H_
 
+#include "contiki.h"
+
+/**
+ * The radio params and packet attributes are serialized between
+ * native border router and serial radio. They are mapped to
+ * packetutil specific constants to ensure they do not change
+ * regardless of changes in Contiki core.
+ *
+ * Note these are the internal serialization types and should not be
+ * used by application code.
+ */
+
+enum {
+  PACKETUTILS_RADIO_PARAM_CHANNEL,
+  PACKETUTILS_RADIO_PARAM_PANID,
+  PACKETUTILS_RADIO_PARAM_SHORT_LLADDR,
+  PACKETUTILS_RADIO_PARAM_LLADDR0,
+  PACKETUTILS_RADIO_PARAM_LLADDR1,
+  PACKETUTILS_RADIO_PARAM_LLADDR2,
+  PACKETUTILS_RADIO_PARAM_LLADDR3,
+  PACKETUTILS_RADIO_PARAM_RX_MODE,
+  PACKETUTILS_RADIO_PARAM_RSSI,
+  PACKETUTILS_RADIO_PARAM_TXPOWER,
+  PACKETUTILS_RADIO_PARAM_TX_MODE,
+  PACKETUTILS_RADIO_PARAM_CCA_THRESHOLD,
+  PACKETUTILS_RADIO_MAX
+};
+
+enum {
+  PACKETUTILS_ATTR_NONE,
+
+  PACKETUTILS_ATTR_CHANNEL,
+  PACKETUTILS_ATTR_LINK_QUALITY,
+  PACKETUTILS_ATTR_RSSI,
+  PACKETUTILS_ATTR_TIMESTAMP,
+  PACKETUTILS_ATTR_RADIO_TXPOWER,
+  PACKETUTILS_ATTR_LISTEN_TIME,
+  PACKETUTILS_ATTR_TRANSMIT_TIME,
+  PACKETUTILS_ATTR_MAX_MAC_TRANSMISSIONS,
+  PACKETUTILS_ATTR_MAC_SEQNO,
+  PACKETUTILS_ATTR_MAC_ACK,
+
+  PACKETUTILS_ATTR_MAX
+};
+
+int16_t packetutils_from_radio_param(int radio_param);
+int packetutils_to_radio_param(int16_t radio_param);
+
 int packetutils_serialize_atts(uint8_t *data, int size);
 
 int packetutils_deserialize_atts(const uint8_t *data, int size);
+
+int packetutils_deserialize_packetbuf(const uint8_t *data, int len);
+int packetutils_serialize_packetbuf(uint8_t *data, int size);
 
 #endif /* PACKETUTILS_H_ */
