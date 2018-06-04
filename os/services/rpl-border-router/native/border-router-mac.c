@@ -42,6 +42,8 @@
 #include "net/netstack.h"
 #include "packetutils.h"
 #include "border-router.h"
+#include "net/mac/csma/csma.h"
+#include "net/mac/csma/csma-security.h"
 #include <string.h>
 
 /*---------------------------------------------------------------------------*/
@@ -114,7 +116,15 @@ send_packet(mac_callback_t sent, void *ptr)
 
   LOG_INFO("sending packet (%u bytes)\n", packetbuf_datalen());
 
-  if(NETSTACK_FRAMER.create() < 0) {
+#if LLSEC802154_ENABLED
+  /* These should possibly be taken from upper layers in the future */
+  packetbuf_set_attr(PACKETBUF_ATTR_SECURITY_LEVEL, csma_security_get_level());
+  packetbuf_set_attr(PACKETBUF_ATTR_KEY_ID_MODE, CSMA_LLSEC_KEY_ID_MODE);
+  packetbuf_set_attr(PACKETBUF_ATTR_KEY_INDEX, csma_security_get_default_key());
+#endif /* LLSEC802154_ENABLED */
+
+  /* CSMA security for enabling llsec if that is enabled */
+  if(csma_security_create_frame() < 0) {
     /* Failed to allocate space for headers */
     LOG_WARN("send failed, too large header\n");
     mac_call_sent_callback(sent, ptr, MAC_TX_ERR_FATAL, 1);
@@ -142,7 +152,7 @@ send_packet(mac_callback_t sent, void *ptr)
 static void
 packet_input(void)
 {
-  if(NETSTACK_FRAMER.parse() < 0) {
+  if(csma_security_parse_frame() < 0) {
     LOG_DBG("failed to parse %u\n", packetbuf_datalen());
   } else {
     NETSTACK_NETWORK.input();
@@ -164,6 +174,8 @@ off()
 static void
 init(void)
 {
+  /* initializa CSMA llsec */
+  csma_driver.init();
   callback_pos = 0;
 }
 /*---------------------------------------------------------------------------*/
