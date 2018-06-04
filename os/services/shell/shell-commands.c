@@ -47,6 +47,7 @@
 #include "shell-commands.h"
 #include "sys/log.h"
 #include "dev/watchdog.h"
+#include "dev/radio.h"
 #include "net/ipv6/uip.h"
 #include "net/ipv6/uiplib.h"
 #include "net/ipv6/uip-icmp6.h"
@@ -86,6 +87,53 @@ static uint16_t curr_ping_datalen;
 static shell_command_6top_sub_cmd_t sixtop_sub_cmd = NULL;
 #endif /* TSCH_WITH_SIXTOP */
 
+/*---------------------------------------------------------------------------*/
+static const char *
+hextoi(const char *buf, int *v)
+{
+  *v = 0;
+  while(*buf != '\0') {
+    if(*buf >= '0' && *buf <= '9') {
+      *v = (*v << 4) + ((*buf - '0') & 0xf);
+    } else if(*buf >= 'a' && *buf <= 'f') {
+      *v = (*v << 4) + ((*buf - 'a' + 10) & 0xf);
+    } else if(*buf >= 'A' && *buf <= 'F') {
+      *v = (*v << 4) + ((*buf - 'A' + 10) & 0xf);
+    } else {
+      break;
+    }
+    buf++;
+  }
+  return buf;
+}
+/*---------------------------------------------------------------------------*/
+const char *
+shell_dectoi(const char *buf, int *v)
+{
+  int negative = 0;
+  *v = 0;
+  if(*buf == '$') {
+    return hextoi(buf + 1, v);
+  }
+  if(*buf == '0' && ((*(buf + 1) == 'x') || (*(buf + 1) == 'X'))) {
+    return hextoi(buf + 2, v);
+  }
+  if(*buf == '-') {
+    negative = 1;
+    buf++;
+  }
+  while(*buf != '\0') {
+    if(*buf < '0' || *buf > '9') {
+      break;
+    }
+    *v = (*v * 10) + ((*buf - '0') & 0xf);
+    buf++;
+  }
+  if(negative) {
+    *v = - *v;
+  }
+  return buf;
+}
 /*---------------------------------------------------------------------------*/
 static const char *
 ds6_nbr_state_to_str(uint8_t state)
@@ -167,6 +215,8 @@ PT_THREAD(cmd_rpl_nbr(struct pt *pt, shell_output_func output, char *args))
     while(nbr != NULL) {
       char buf[120];
       rpl_neighbor_snprint(buf, sizeof(buf), nbr);
+      /* Make sure the string is null terminated */
+      buf[sizeof(buf) - 1] = '\0';
       SHELL_OUTPUT(output, "%s\n", buf);
       nbr = nbr_table_next(rpl_neighbors, nbr);
     }
@@ -743,6 +793,8 @@ PT_THREAD(cmd_routes(struct pt *pt, shell_output_func output, char *args))
     while(link != NULL) {
       char buf[100];
       uip_sr_link_snprint(buf, sizeof(buf), link);
+      /* Make sure the string is null terminated */
+      buf[sizeof(buf) - 1] = '\0';
       SHELL_OUTPUT(output, "-- %s\n", buf);
       link = uip_sr_node_next(link);
     }
@@ -936,6 +988,61 @@ PT_THREAD(cmd_llsec(struct pt *pt, shell_output_func output, char *args))
 }
 #endif
 /*---------------------------------------------------------------------------*/
+#if PLATFORM_HAS_RADIO
+static
+PT_THREAD(cmd_radio(struct pt *pt, shell_output_func output, char *args))
+{
+  char *next_args;
+  radio_value_t channel, panid;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+
+  /* Get first arg  */
+  SHELL_ARGS_NEXT(args, next_args);
+
+  /* no args... just print status */
+  if(args == NULL) {
+    channel = 0;
+    panid = 0;
+    NETSTACK_RADIO.get_value(RADIO_PARAM_CHANNEL, &channel);
+    NETSTACK_RADIO.get_value(RADIO_PARAM_PAN_ID, &panid);
+    SHELL_OUTPUT(output,
+                 "RADIO channel: %d, PAN ID: 0x%04x\n",
+                 channel, panid & 0xffff);
+  } else {
+    do {
+      if(!strcmp(args, "set-channel")) {
+        SHELL_ARGS_NEXT(args, next_args);
+        if(args != NULL) {
+          if(shell_dectoi(args, &channel) != args) {
+            SHELL_OUTPUT(output, "Set channel to %d\n", channel);
+            NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, channel);
+          }
+        }
+      } else if(!strcmp(args, "set-panid")) {
+        SHELL_ARGS_NEXT(args, next_args);
+        if(args != NULL) {
+          if(shell_dectoi(args, &panid) != args) {
+            SHELL_OUTPUT(output, "Set PAN ID to 0x%04x\n", panid & 0xffff);
+            NETSTACK_RADIO.set_value(RADIO_PARAM_PAN_ID, panid & 0xffff);
+          }
+        }
+      } else if(!strcmp(args, "help")) {
+        SHELL_OUTPUT(output, "radio [set-panid pan-id] [set-channel channel]\n");
+      } else {
+        SHELL_OUTPUT(output, "Invalid argument: %s\n", args);
+        break;
+      }
+      SHELL_ARGS_NEXT(args, next_args);
+    } while(args != NULL);
+  }
+
+  PT_END(pt);
+}
+#endif /* PLATFORM_HAS_RADIO */
+/*---------------------------------------------------------------------------*/
 void
 shell_commands_init(void)
 {
@@ -976,8 +1083,11 @@ struct shell_command_t shell_commands[] = {
   { "6top",                 cmd_6top,                 "'> 6top help': Shows 6top command usage" },
 #endif /* TSCH_WITH_SIXTOP */
 #if LLSEC802154_ENABLED
-  { "llsec",                 cmd_llsec,                 "'> llsec help': show llsec help." },
-#endif /* TSCH_WITH_SIXTOP */
+  { "llsec",                cmd_llsec,                "'> llsec help': show llsec help." },
+#endif /* LLSEC802154_ENABLED */
+#if PLATFORM_HAS_RADIO
+  { "radio",                cmd_radio,                "'> radio help': Shows radio command usage." },
+#endif /* PLATFORM_HAS_RADIO */
 
   { NULL, NULL, NULL },
 };
