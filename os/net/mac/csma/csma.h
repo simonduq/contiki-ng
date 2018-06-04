@@ -71,8 +71,12 @@ extern const struct mac_driver csma_driver;
 int csma_security_create_frame(void);
 int csma_security_parse_frame(void);
 
-/* key management for CSMA */
+/* key and security management for CSMA */
 void csma_security_set_key(uint8_t index, uint8_t *key);
+void csma_security_set_level(uint8_t level);
+void csma_security_set_default_key(uint8_t index);
 
+uint8_t csma_security_get_level(void);
+uint8_t csma_security_get_default_key(void);
 
 #endif /* CSMA_H_ */

@@ -68,6 +68,11 @@
 #include "net/routing/rpl-classic/rpl.h"
 #endif
 
+#if LLSEC802154_ENABLED
+#include "net/mac/csma/csma.h"
+#include "net/mac/csma/csma-security.h"
+#endif
+
 #include <stdlib.h>
 
 #define PING_TIMEOUT (5 * CLOCK_SECOND)
@@ -846,6 +851,90 @@ PT_THREAD(cmd_6top(struct pt *pt, shell_output_func output, char *args))
   PT_END(pt);
 }
 #endif /* TSCH_WITH_SIXTOP */
+#if LLSEC802154_ENABLED
+
+static int
+hex(char c)
+{
+  if(c >= '0' && c <= '9') {
+    return c - '0';
+  }
+  if(c >= 'a' && c <= 'f') {
+    return 10 + c - 'a';
+  }
+  if(c >= 'A' && c <= 'F') {
+    return 10 + c - 'A';
+  }
+  return 0;
+}
+static
+PT_THREAD(cmd_llsec(struct pt *pt, shell_output_func output, char *args))
+{
+  char *next_args;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+
+  /* Get first arg  */
+  SHELL_ARGS_NEXT(args, next_args);
+
+  /* no args... just print status */
+  if(args == NULL) {
+    /* For now - assume CSMA? */
+    SHELL_OUTPUT(output,
+                 "LLSEC level: %d, key-id-mode: %d, default key index: %d\n",
+                 csma_security_get_level(), CSMA_LLSEC_KEY_ID_MODE,
+                 csma_security_get_default_key());
+    PT_EXIT(pt);
+  }
+
+  if(!strcmp(args, "set-level")) {
+    SHELL_ARGS_NEXT(args, next_args);
+    if(args != NULL) {
+      if(args[0] >= '0' && args[0] <= '7') {
+        SHELL_OUTPUT(output, "Set level to %d\n", args[0] - '0');
+        csma_security_set_level(args[0] - '0');
+      }
+    }
+    PT_EXIT(pt);
+  } else if(!strcmp(args, "set-key")) {
+    int key = 0;
+    SHELL_ARGS_NEXT(args, next_args);
+    if(args != NULL) {
+      if(strlen(args) == 1 && args[0] >= '0' && args[0] <= '9') {
+        key = args[0] - '0';
+      } else {
+        SHELL_OUTPUT(output, "illegal key - only 0 - 9 :%s - using 0.\n", args);
+        PT_EXIT(pt);
+      }
+    }
+
+    SHELL_ARGS_NEXT(args, next_args);
+    if(args != NULL) {
+      if(strlen(args) == 16) {
+        /* ASCII key */
+        SHELL_OUTPUT(output, "Setting ASCII key.\n");
+        csma_security_set_key(key, (uint8_t *)args);
+      } else if(strlen(args) == 32) {
+        int i;
+        SHELL_OUTPUT(output, "Setting HEX key.\n");
+        for(i = 0; i < 32; i++) {
+          args[i] = hex(args[i * 2]) << 4 | hex(args[i * 2 + 1]);
+        }
+        args[16] = 0;
+        csma_security_set_key(key, (uint8_t *)args);
+      }
+      PT_EXIT(pt);
+    }
+  } else {
+    SHELL_OUTPUT(output, "Invalid first argument: %s\n", args);
+    PT_EXIT(pt);
+  }
+
+  PT_END(pt);
+}
+#endif
 /*---------------------------------------------------------------------------*/
 void
 shell_commands_init(void)
@@ -886,6 +975,10 @@ struct shell_command_t shell_commands[] = {
 #if TSCH_WITH_SIXTOP
   { "6top",                 cmd_6top,                 "'> 6top help': Shows 6top command usage" },
 #endif /* TSCH_WITH_SIXTOP */
+#if LLSEC802154_ENABLED
+  { "llsec",                 cmd_llsec,                 "'> llsec help': show llsec help." },
+#endif /* TSCH_WITH_SIXTOP */
+
   { NULL, NULL, NULL },
 };
 
