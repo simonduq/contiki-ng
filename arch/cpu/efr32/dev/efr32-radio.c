@@ -71,11 +71,11 @@
 
 #include <stdio.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
-#define PRINTF printf
+#define PRINTF(...) printf(__VA_ARGS__)
 #else
-#define PRINTF
+#define PRINTF(...)
 #endif
 
 
