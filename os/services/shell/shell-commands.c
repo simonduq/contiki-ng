@@ -453,6 +453,12 @@ PT_THREAD(cmd_log(struct pt *pt, shell_output_func output, char *args))
 
   /* Get and parse argument: module name */
   SHELL_ARGS_NEXT(args, next_args);
+  if(args == NULL) {
+    /* No arguments specified - show current log configuration */
+    shell_output_log_levels(output);
+    PT_EXIT(pt);
+  }
+
   module = args;
   prev_level = log_get_level(module);
   if(module == NULL || (strcmp("all", module) && prev_level == -1)) {
