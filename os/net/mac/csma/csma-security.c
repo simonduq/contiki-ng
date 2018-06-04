@@ -193,11 +193,13 @@ csma_security_parse_frame(void)
 
   hdr_len = NETSTACK_FRAMER.parse();
   if(hdr_len < 0) {
+    LOG_INFO("LLSEC-IN: could not parse frame\n");
     return hdr_len;
   }
 
   if(packetbuf_attr(PACKETBUF_ATTR_SECURITY_LEVEL) == 0) {
     /* No security - no more processing required */
+    LOG_INFO("LLSEC-IN: frame is not secured\n");
     return hdr_len;
   }
 
