@@ -47,6 +47,7 @@
 #include "services/ipso-objects/ipso-sensor-template.h"
 #include "services/ipso-objects/ipso-control-template.h"
 #include "dev/leds.h"
+#include "board-ipso-sensors.h"
 
 #define DEBUG DEBUG_NONE
 #include "net/ipv6/uip-debug.h"
@@ -62,81 +63,6 @@
 #ifndef LWM2M_SERVER_ADDRESS
 #define LWM2M_SERVER_ADDRESS "coap://[fd00::1]"
 #endif
-
-#if BOARD_SENSORTAG
-#include "board-peripherals.h"
-
-/* Temperature reading */
-static lwm2m_status_t
-read_temp_value(const ipso_sensor_t *s, int32_t *value)
-{
-  *value = 10 * hdc_1000_sensor.value(HDC_1000_SENSOR_TYPE_TEMP);
-  return LWM2M_STATUS_OK;
-}
-/* Humitidy reading */
-static lwm2m_status_t
-read_hum_value(const ipso_sensor_t *s, int32_t *value)
-{
-  *value = 10 * hdc_1000_sensor.value(HDC_1000_SENSOR_TYPE_HUMIDITY);
-  return LWM2M_STATUS_OK;
-}
-/* Lux reading */
-static lwm2m_status_t
-read_lux_value(const ipso_sensor_t *s, int32_t *value)
-{
-  *value = 10 * opt_3001_sensor.value(0);
-  return LWM2M_STATUS_OK;
-}
-/* Barometer reading */
-static lwm2m_status_t
-read_bar_value(const ipso_sensor_t *s, int32_t *value)
-{
-  *value = 10 * bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
-  return LWM2M_STATUS_OK;
-}
-/* LED control */
-static lwm2m_status_t
-leds_set_val(ipso_control_t *control, uint8_t value)
-{
-  if(value > 0) {
-    leds_single_on(LEDS_LED1);
-  } else {
-    leds_single_off(LEDS_LED1);
-  }
-  return LWM2M_STATUS_OK;
-}
-/*---------------------------------------------------------------------------*/
-
-IPSO_CONTROL(led_control, 3311, 0, leds_set_val);
-
-IPSO_SENSOR(temp_sensor, 3303, read_temp_value,
-            .max_range = 100000, /* 100 cel milli celcius */
-            .min_range = -10000, /* -10 cel milli celcius */
-            .unit = "Cel",
-            .update_interval = 30
-            );
-
-IPSO_SENSOR(hum_sensor, 3304, read_hum_value,
-            .max_range = 100000, /* 100 % RH */
-            .min_range = 0,
-            .unit = "% RH",
-            .update_interval = 30
-            );
-
-IPSO_SENSOR(lux_sensor, 3301, read_lux_value,
-            .max_range = 100000,
-            .min_range = -10000,
-            .unit = "LUX",
-            .update_interval = 30
-            );
-
-IPSO_SENSOR(bar_sensor, 3315, read_bar_value,
-            .max_range = 100000, /* 100 cel milli celcius */
-            .min_range = -10000, /* -10 cel milli celcius */
-            .unit = "hPa",
-            .update_interval = 30
-            );
-#endif  /* BOARD_SENSORTAG */
 
 PROCESS(example_ipso_objects, "IPSO object example");
 AUTOSTART_PROCESSES(&example_ipso_objects);
@@ -174,17 +100,8 @@ PROCESS_THREAD(example_ipso_objects, ev, data)
   lwm2m_security_init();
   lwm2m_server_init();
 
-#if BOARD_SENSORTAG
-  ipso_sensor_add(&temp_sensor);
-  ipso_sensor_add(&hum_sensor);
-  ipso_sensor_add(&lux_sensor);
-  ipso_sensor_add(&bar_sensor);
-  ipso_control_add(&led_control);
-  ipso_button_init();
-
-  SENSORS_ACTIVATE(hdc_1000_sensor);
-  SENSORS_ACTIVATE(opt_3001_sensor);
-  SENSORS_ACTIVATE(bmp_280_sensor);
+#if BOARD_IPSO_SENSORS
+  board_ipso_sensors_init();
 #else /* BOARD_SENSORTAG */
   /* Register default IPSO objects - such as button..*/
   ipso_objects_init();
@@ -197,15 +114,8 @@ PROCESS_THREAD(example_ipso_objects, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT();
     if(ev == PROCESS_EVENT_TIMER && etimer_expired(&periodic)) {
-#if BOARD_SENSORTAG
-      /* deactive / activate to do a new reading */
-      SENSORS_DEACTIVATE(hdc_1000_sensor);
-      SENSORS_DEACTIVATE(opt_3001_sensor);
-      SENSORS_DEACTIVATE(bmp_280_sensor);
-
-      SENSORS_ACTIVATE(hdc_1000_sensor);
-      SENSORS_ACTIVATE(opt_3001_sensor);
-      SENSORS_ACTIVATE(bmp_280_sensor);
+#if BOARD_IPSO_SENSORS
+      board_ipso_sensors_periodic();
 #endif /* BOARD_SENSORTAG */
       etimer_reset(&periodic);
     }

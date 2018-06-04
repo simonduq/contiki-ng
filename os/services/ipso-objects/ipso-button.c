@@ -66,7 +66,9 @@
 #include "dev/button-hal.h"
 #else
 #include "dev/button-sensor.h"
+#ifndef IPSO_BUTTON_SENSOR
 #define IPSO_BUTTON_SENSOR button_sensor
+#endif /* IPSO_BUTTON_SENSOR */
 static struct etimer timer;
 #endif
 
