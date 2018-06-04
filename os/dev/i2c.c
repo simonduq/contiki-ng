@@ -32,6 +32,8 @@
 #include "dev/i2c.h"
 #include "sys/cc.h"
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 /*---------------------------------------------------------------------------*/
 bool
 i2c_has_bus(const i2c_device_t *dev)
@@ -42,10 +44,10 @@ i2c_has_bus(const i2c_device_t *dev)
   return dev->bus->lock != 0 && dev->bus->lock_device == dev;
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_acquire(i2c_device_t *dev)
 {
-  uint8_t status;
+  i2c_status_t status;
   if(dev == NULL || dev->bus == NULL) {
     return I2C_BUS_STATUS_EINVAL;
   }
@@ -75,7 +77,7 @@ i2c_acquire(i2c_device_t *dev)
   return I2C_BUS_STATUS_BUS_LOCKED;
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_release(i2c_device_t *dev)
 {
   if(!i2c_has_bus(dev)) {
@@ -91,7 +93,7 @@ i2c_release(i2c_device_t *dev)
   return I2C_BUS_STATUS_EINVAL;
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_restart_timeout(i2c_device_t *dev)
 {
   if(!i2c_has_bus(dev)) {
@@ -100,7 +102,7 @@ i2c_restart_timeout(i2c_device_t *dev)
   return i2c_arch_restart_timeout(dev);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_write_byte(i2c_device_t *dev, uint8_t data)
 {
   if(!i2c_has_bus(dev)) {
@@ -109,7 +111,7 @@ i2c_write_byte(i2c_device_t *dev, uint8_t data)
   return i2c_arch_write(dev, &data, 1);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_write(i2c_device_t *dev, const uint8_t *data, int size)
 {
   if(!i2c_has_bus(dev)) {
@@ -118,7 +120,7 @@ i2c_write(i2c_device_t *dev, const uint8_t *data, int size)
   return i2c_arch_write(dev, data, size);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_read_byte(i2c_device_t *dev, uint8_t *data)
 {
   if(!i2c_has_bus(dev)) {
@@ -127,7 +129,7 @@ i2c_read_byte(i2c_device_t *dev, uint8_t *data)
   return i2c_arch_read(dev, data, 1);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_read(i2c_device_t *dev, uint8_t *data, int size)
 {
   if(!i2c_has_bus(dev)) {
@@ -137,7 +139,7 @@ i2c_read(i2c_device_t *dev, uint8_t *data, int size)
 }
 /*---------------------------------------------------------------------------*/
 /* Read a register - e.g. first write a data byte to select register to read from, then read */
-uint8_t
+i2c_status_t
 i2c_read_register(i2c_device_t *dev, uint8_t reg, uint8_t *data, int size)
 {
   uint8_t status;
@@ -155,11 +157,11 @@ i2c_read_register(i2c_device_t *dev, uint8_t reg, uint8_t *data, int size)
 }
 /*---------------------------------------------------------------------------*/
 /* Write a register - e.g. first write a data byte to select register to write to, then write */
-uint8_t
+i2c_status_t
 i2c_write_register(i2c_device_t *dev, uint8_t reg, uint8_t data)
 {
   uint8_t buffer[2];
-  uint8_t status;
+  i2c_status_t status;
 
   /* write the register first */
   buffer[0] = reg;
@@ -174,11 +176,11 @@ i2c_write_register(i2c_device_t *dev, uint8_t reg, uint8_t data)
 }
 /*---------------------------------------------------------------------------*/
 /* Write a register - e.g. first write a data byte to select register to write to, then write */
-uint8_t
+i2c_status_t
 i2c_write_register_buf(i2c_device_t *dev, uint8_t reg, const uint8_t *data, int size)
 {
   uint8_t buffer[size + 1];
-  uint8_t status;
+  i2c_status_t status;
 
   /* write the register first */
   buffer[0] = reg;
@@ -192,7 +194,7 @@ i2c_write_register_buf(i2c_device_t *dev, uint8_t reg, const uint8_t *data, int 
   return i2c_arch_stop(dev);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t
+i2c_status_t
 i2c_stop(i2c_device_t *dev)
 {
   if(!i2c_has_bus(dev)) {

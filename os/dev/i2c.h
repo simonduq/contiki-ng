@@ -50,6 +50,7 @@
 
 #include "contiki-conf.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef PLATFORM_HAS_I2C_ARCH
 #include "i2c-arch.h"
