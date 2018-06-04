@@ -40,6 +40,7 @@
 #include "border-router.h"
 #include "border-router-cmds.h"
 #include "dev/serial-line.h"
+#include "net/mac/framer/frame802154.h"
 #include "net/routing/routing.h"
 #include "net/ipv6/uiplib.h"
 #include "packetutils.h"
@@ -186,6 +187,8 @@ border_router_cmd_handler(const uint8_t *data, int len)
         dectoi(&data[2], len - 2, &pan_id);
         if(pan_id >= 0) {
           set_radio_param(RADIO_PARAM_PAN_ID, pan_id & 0xffff);
+          /* Also set the PAN ID in the framer */
+          frame802154_set_pan_id(pan_id & 0xffff);
         }
         return 1;
       }

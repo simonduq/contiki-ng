@@ -1034,6 +1034,8 @@ PT_THREAD(cmd_radio(struct pt *pt, shell_output_func output, char *args))
           if(shell_dectoi(args, &panid) != args) {
             SHELL_OUTPUT(output, "Set PAN ID to 0x%04x\n", panid & 0xffff);
             NETSTACK_RADIO.set_value(RADIO_PARAM_PAN_ID, panid & 0xffff);
+            /* Also set the PAN ID in the framer */
+            frame802154_set_pan_id(panid & 0xffff);
           }
         }
       } else if(!strcmp(args, "help")) {
