@@ -27,16 +27,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * 
  *
  */
 
 #include "contiki.h"
-#include "board.h"
+#include "lib/sensors.h"
 #include <em_device.h>
 #include <em_gpio.h>
-#include "lib/sensors.h"
-#include <stdio.h>
 
 #define DEBOUNCE_DURATION (CLOCK_SECOND >> 5)
 
@@ -47,8 +44,9 @@ struct btn_timer {
 };
 
 static struct btn_timer left_timer, right_timer;
-
-static uint8_t get_state(void)
+/*---------------------------------------------------------------------------*/
+static uint8_t
+get_state(void)
 {
   uint32_t portState;
   uint8_t  buttonState;
@@ -61,8 +59,9 @@ static uint8_t get_state(void)
 
   return buttonState;
 }
-
-static void enable_irq(int button, bool enable)
+/*---------------------------------------------------------------------------*/
+static void
+enable_irq(int button, bool enable)
 {
   if(button == 0) {
     GPIO_ExtIntConfig(BOARD_BUTTON_PORT, BOARD_BUTTON_LEFT_PIN,
@@ -72,8 +71,9 @@ static void enable_irq(int button, bool enable)
                       EXTI_BUTTON1, true, true, enable);
   }
 }
-
-void button_sensor_button_irq(int button)
+/*---------------------------------------------------------------------------*/
+void
+button_sensor_button_irq(int button)
 {
   struct btn_timer  *timer;
   int bval = 0;
@@ -104,7 +104,7 @@ void button_sensor_button_irq(int button)
     sensors_changed(button_sp);
   }
 }
-
+/*---------------------------------------------------------------------------*/
 static void
 config_buttons(int type, int c, int button)
 {
@@ -123,20 +123,21 @@ config_buttons(int type, int c, int button)
     break;
   }
 }
-
-static int config_left(int type, int c)
+/*---------------------------------------------------------------------------*/
+static int
+config_left(int type, int c)
 {
   config_buttons(type, c, 0);
   return 1;
 }
-
-static int config_right(int type, int c)
+/*---------------------------------------------------------------------------*/
+static int
+config_right(int type, int c)
 {
   config_buttons(type, c, 1);
   return 1;
 }
-
- /*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /**
  * \brief Status function for all buttons
  * \param type SENSORS_ACTIVE or SENSORS_READY
@@ -190,16 +191,15 @@ status_left(int type)
 {
   return status(type, 0);
 }
-
+/*---------------------------------------------------------------------------*/
 static int
 status_right(int type)
 {
   return status(type, 1);
 }
-
 /*---------------------------------------------------------------------------*/
-SENSORS_SENSOR(button_left_sensor, BUTTON_SENSOR, value_left, config_left,
+SENSORS_SENSOR(button_left_sensor, "Button Left", value_left, config_left,
                status_left);
-SENSORS_SENSOR(button_right_sensor, BUTTON_SENSOR, value_right, config_right,
+SENSORS_SENSOR(button_right_sensor, "Button Right", value_right, config_right,
                status_right);
 /*---------------------------------------------------------------------------*/

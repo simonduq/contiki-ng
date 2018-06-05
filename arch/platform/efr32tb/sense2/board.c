@@ -45,10 +45,6 @@
 #define LOG_MODULE "board"
 #define LOG_LEVEL LOG_LEVEL_MAIN
 /*---------------------------------------------------------------------------*/
-#include <stdio.h>
-#include "sys/ctimer.h"
-
-static struct ctimer periodic_timer;
 
 #define VCOM_ENABLE_PORT gpioPortA
 #define VCOM_ENABLE_PIN  5
@@ -60,35 +56,6 @@ i2c_bus_t i2c1_bus = {.lock_device = NULL,
                                  .scl_loc = _I2C_ROUTELOC0_SCLLOC_LOC17},
                     };
 
-
-/*---------------------------------------------------------------------------*/
-int enable = 0;
-static void
-handle_periodic_timer(void *p)
-{
-  int32_t temp;
-  uint32_t pressure;
-
-  temp = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_TEMP);
-  pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
-
-  //  bmp_get_temperature_pressure(&temp, &pressure);
-
-  printf("Sense2: Time is %d Temp:%d.%03d Pressure: %d.%03d  BLeft:%d\n",
-         (int) clock_time(),
-         (int) (temp / 1000),(int) (temp % 1000),
-         (int) (pressure / 1000),(int) (pressure % 1000),
-         button_left_sensor.value(0));
-
-  rgbleds_enable(enable++ & 0xf);
-
-  rgbleds_setcolor(clock_time() & 0xffff,
-                  (clock_time() >> 2) & 0xffff,
-                  (clock_time() >> 4) & 0xffff);
-
-
-  ctimer_reset(&periodic_timer);
-}
 /*---------------------------------------------------------------------------*/
 void button_sensor_button_irq(int button);
 
@@ -120,6 +87,7 @@ board_init(void)
   GPIO_PinModeSet(VCOM_ENABLE_PORT, VCOM_ENABLE_PIN, gpioModePushPull, 1);
 
   SENSORS_ACTIVATE(button_left_sensor);
+  SENSORS_ACTIVATE(button_right_sensor);
 
   /* setup button interrupts  */
   GPIOINT_CallbackRegister(EXTI_BUTTON0, gpioInterruptHandler);
@@ -128,10 +96,7 @@ board_init(void)
   SENSORS_ACTIVATE(bmp_280_sensor);
 
   rgbleds_init();
-
-  ctimer_set(&periodic_timer, CLOCK_SECOND * 1, handle_periodic_timer, NULL);
 }
-
 /*---------------------------------------------------------------------------*/
 /** \brief Exports a global symbol to be used by the sensor API */
 SENSORS(&button_left_sensor, &button_right_sensor, &bmp_280_sensor);

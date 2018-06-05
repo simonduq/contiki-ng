@@ -10,7 +10,7 @@ ifndef GECKO_SDK_PATH
   endif
 endif
 
-CLEAN += *.efr32tb
+CLEAN += *.efr32tb *.elf *.bin *.lst *.hex
 
 # Do not warn for missing Gecko SDK when doing distclean
 ifneq ($(MAKECMDGOALS),clean)

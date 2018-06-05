@@ -31,10 +31,10 @@
 #ifndef RGBLEDS_H
 #define RGBLEDS_H
 
+#include <stdint.h>
+
 void rgbleds_init(void);
 void rgbleds_enable(uint8_t leds);
 void rgbleds_setcolor(uint16_t red, uint16_t green, uint16_t blue);
 
 #endif /* RGBLEDS_H */
-
-

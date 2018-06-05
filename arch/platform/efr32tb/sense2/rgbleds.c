@@ -30,22 +30,22 @@
  *
  */
 
+#include "contiki.h"
 #include "em_device.h"
 #include "em_gpio.h"
 #include "em_cmu.h"
 #include "em_timer.h"
-#include "board.h"
 
-/*
-  RGB LEDS API.
-  Configuration inspired by Silabs demo code for TB Sense 2 - see
-  Simplicity Studio TB Sense 2 BLE Demo software for more advanced
-  RGB LED driver with tables for more correct intensity and more
-  linear RGB mapping.
-*/
+/**
+ * RGB LEDS API.
+ * Configuration inspired by Silabs demo code for TB Sense 2 - see
+ * Simplicity Studio TB Sense 2 BLE Demo software for more advanced
+ * RGB LED driver with tables for more correct intensity and more
+ * linear RGB mapping.
+ */
 
 static TIMER_TypeDef     *pwm_timer;
-
+/*---------------------------------------------------------------------------*/
 void
 rgbleds_init(void)
 {
@@ -92,11 +92,15 @@ rgbleds_init(void)
     | (BOARD_RGBLED_GREEN_CCLOC << _TIMER_ROUTELOC0_CC1LOC_SHIFT)
     | (BOARD_RGBLED_BLUE_CCLOC  << _TIMER_ROUTELOC0_CC2LOC_SHIFT);
 }
-
+/*---------------------------------------------------------------------------*/
 void
 rgbleds_enable(uint8_t leds)
 {
   int i;
+
+  if(pwm_timer == NULL) {
+    return;
+  }
 
   if(leds != 0) {
     GPIO_PinOutSet(BOARD_RGBLED_PWR_EN_PORT, BOARD_RGBLED_PWR_EN_PIN);
@@ -114,11 +118,15 @@ rgbleds_enable(uint8_t leds)
     }
   }
 }
-
-  /* set color for all RGB LEDs */
+/*---------------------------------------------------------------------------*/
+/* set color for all RGB LEDs */
 void
 rgbleds_setcolor(uint16_t red, uint16_t green, uint16_t blue)
 {
+  if(pwm_timer == NULL) {
+    return;
+  }
+
   if((red == 0) && (green == 0) && (blue == 0) ) {
     TIMER_Enable(pwm_timer, false);
     TIMER_CompareBufSet(pwm_timer, 0, 0);
@@ -138,3 +146,4 @@ rgbleds_setcolor(uint16_t red, uint16_t green, uint16_t blue)
       TIMER_ROUTEPEN_CC2PEN;
   }
 }
+/*---------------------------------------------------------------------------*/
