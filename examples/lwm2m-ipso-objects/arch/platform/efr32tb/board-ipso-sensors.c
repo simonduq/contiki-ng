@@ -29,7 +29,7 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*---------------------------------------------------------------------------*/
-#if BOARD_TB_SENSE2
+#ifdef CONTIKI_BOARD_SENSE2
 #include "contiki.h"
 #include "services/lwm2m/lwm2m-engine.h"
 #include "services/lwm2m/lwm2m-rd-client.h"
@@ -114,4 +114,4 @@ board_ipso_sensors_periodic(void)
 {
   /* nothing right now. */
 }
-#endif /* BOARD_TB_SENSE2 */
+#endif /* CONTIKI_BOARD_SENSE2 */

@@ -32,8 +32,9 @@
  *
  */
 /*---------------------------------------------------------------------------*/
-#if BOARD_TB_SENSE2
+#ifdef CONTIKI_BOARD_SENSE2
 /* We will have a working board-ipso-sensors for this platform */
 #define BOARD_IPSO_SENSORS 1
 #define IPSO_BUTTON_SENSOR button_left_sensor
-#endif
+#endif /* CONTIKI_BOARD_SENSE2 */
+/*---------------------------------------------------------------------------*/
