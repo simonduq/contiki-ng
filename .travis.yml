@@ -20,7 +20,7 @@ before_install:
     else
       echo "Docker image changed, build from Dockerfile"
       docker build tools/docker -t $DOCKER_IMG;
-      if [ $? != 0 ]
+      if [ $? != 0 ]; then
         echo "Failed to build Docker image"
         exit 1
       fi
