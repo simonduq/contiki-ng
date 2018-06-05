@@ -56,7 +56,7 @@
    configuration option can be tweaked to save memory. Performance can
    suffer with a too low number of queue buffers though. */
 #ifndef QUEUEBUF_CONF_NUM
-#define QUEUEBUF_CONF_NUM 8
+#define QUEUEBUF_CONF_NUM 16
 #endif /* QUEUEBUF_CONF_NUM */
 /*---------------------------------------------------------------------------*/
 /* uIPv6 configuration options.
