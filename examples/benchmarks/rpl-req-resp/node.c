@@ -126,9 +126,9 @@ PROCESS_THREAD(app_process, ev, data)
 
     } while(NETSTACK_ROUTING.reachable_nodes_count() < deployment_node_count());
 
-    /* Now start requesting nodes at random (and stop if nodes disconnect) */
+    /* Now start requesting nodes at random */
     etimer_set(&timer, SEND_INTERVAL);
-    while(NETSTACK_ROUTING.reachable_nodes_count() == deployment_node_count()) {
+    while(1) {
       static uint32_t count = 0;
       uint16_t dest_id;
 
