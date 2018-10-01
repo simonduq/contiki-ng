@@ -53,7 +53,6 @@
 #include "net/mac/framer/frame802154.h"
 #include "sys/process.h"
 #include "sys/rtimer.h"
-#include "deployment.h"
 #include <string.h>
 
 /* Log configuration */

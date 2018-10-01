@@ -59,9 +59,6 @@
 #include "net/routing/routing.h"
 
 #include "dev/watchdog.h"
-#if BUILD_WITH_DEPLOYMENT
-#include "deployment.h"
-#endif
 
 #if TSCH_WITH_SIXTOP
 #include "net/mac/tsch/sixtop/sixtop.h"

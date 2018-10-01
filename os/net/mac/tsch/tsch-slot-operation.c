@@ -57,8 +57,6 @@
 #include "sys/cooja_mt.h"
 #endif /* CONTIKI_TARGET_COOJA */
 
-#include "deployment.h"
-
 #include "sys/log.h"
 /* TSCH debug macros, i.e. to set LEDs or GPIOs on various TSCH
  * timeslot events */
