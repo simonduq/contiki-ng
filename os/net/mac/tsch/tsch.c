@@ -220,7 +220,7 @@ tsch_reset(void)
   /* Reset timeslot timing to defaults */
   tsch_default_timing_us = TSCH_DEFAULT_TIMESLOT_TIMING;
   for(i = 0; i < tsch_ts_elements_count; i++) {
-    tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i
+    tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
   }
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK
   TSCH_CALLBACK_LEAVING_NETWORK();
