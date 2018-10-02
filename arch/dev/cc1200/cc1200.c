@@ -1453,10 +1453,10 @@ get_object(radio_param_t param, void *dest, size_t size)
   }
 
   if(param == RADIO_CONST_TSCH_TIMING) {
-    if(size != sizeof(rtimer_clock_t *) || !dest) {
+    if(size != sizeof(uint16_t *) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    *(rtimer_clock_t **)dest = current_rf_config->tsch_timing;
+    *(uint16_t **)dest = current_rf_config->tsch_timing;
     return RADIO_RESULT_OK;
   }
 

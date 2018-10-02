@@ -58,18 +58,9 @@
 #include "lib/random.h"
 #include "net/routing/routing.h"
 
-#include "dev/watchdog.h"
-
 #if TSCH_WITH_SIXTOP
 #include "net/mac/tsch/sixtop/sixtop.h"
 #endif
-
-#include "cc1200-conf.h"
-#include "cc1200-rf-cfg.h"
-extern const cc1200_rf_cfg_t cc1200_868_4gfsk_1000kbps;
-extern const cc1200_rf_cfg_t cc1200_868_2gfsk_50kbps_802154g;
-extern const cc1200_rf_cfg_t cc1200_868_2gfsk_1_2kbps_sp;
-extern const cc1200_rf_cfg_t CC1200_CONF_RF_CFG;
 
 #if FRAME802154_VERSION < FRAME802154_IEEE802154_2015
 #error TSCH: FRAME802154_VERSION must be at least FRAME802154_IEEE802154_2015
@@ -110,8 +101,10 @@ NBR_TABLE(struct eb_stat, eb_stats);
 uint8_t tsch_hopping_sequence[TSCH_HOPPING_SEQUENCE_MAX_LEN];
 struct tsch_asn_divisor_t tsch_hopping_sequence_length;
 
+/* Default TSCH timeslot timing (in micro-second) */
+static const uint16_t *tsch_default_timing_us;
 /* TSCH timeslot timing (in rtimer ticks) */
-rtimer_clock_t *tsch_timing = NULL;
+rtimer_clock_t tsch_timing[tsch_ts_elements_count];
 
 #if LINKADDR_SIZE == 8
 /* 802.15.4 broadcast MAC address  */
@@ -211,6 +204,7 @@ tsch_set_eb_period(uint32_t period)
 static void
 tsch_reset(void)
 {
+  int i;
   frame802154_set_pan_id(0xffff);
   /* First make sure pending packet callbacks are sent etc */
   process_post_synch(&tsch_pending_events_process, PROCESS_EVENT_POLL, NULL);
@@ -224,9 +218,10 @@ tsch_reset(void)
   TSCH_ASN_INIT(tsch_current_asn, 0, 0);
   current_link = NULL;
   /* Reset timeslot timing to defaults */
-
-  tsch_timing = TSCH_CONF_MULTIPHY_DEFAULT_TIMING;
-
+  tsch_default_timing_us = TSCH_DEFAULT_TIMESLOT_TIMING;
+  for(i = 0; i < tsch_ts_elements_count; i++) {
+    tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i
+  }
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK
   TSCH_CALLBACK_LEAVING_NETWORK();
 #endif
@@ -365,9 +360,8 @@ eb_input(struct input_packet *current_input)
       while(stat != NULL) {
         /* Is neighbor eligible as a time source? */
         if(stat->rx_count > best_neighbor_eb_count / 2) {
-          if((stat->jp + 1) < TSCH_MAX_JOIN_PRIORITY &&
-             (best_stat == NULL ||
-             stat->jp < best_stat->jp)) {
+          if(best_stat == NULL ||
+             stat->jp < best_stat->jp) {
             best_stat = stat;
           }
         }
@@ -573,13 +567,10 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
   }
 
   /* TSCH timeslot timing */
-  if(ies.ie_tsch_timeslot_id == 0) {
-    /* Just assign tsch_timing for subsequent calculations, but keep default timing unchanged (initialized in reset()) */
-    if(NETSTACK_RADIO.get_object(RADIO_CONST_TSCH_TIMING, &tsch_timing, sizeof(rtimer_clock_t *)) != RADIO_RESULT_OK) {
-      tsch_timing = TSCH_CONF_MULTIPHY_DEFAULT_TIMING;
-    }
-  } else {
-    for(i = 0; i < tsch_ts_elements_count; i++) {
+  for(i = 0; i < tsch_ts_elements_count; i++) {
+    if(ies.ie_tsch_timeslot_id == 0) {
+      tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
+    } else {
       tsch_timing[i] = US_TO_RTIMERTICKS(ies.ie_tsch_timeslot[i]);
     }
   }
@@ -642,14 +633,7 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
   }
 #endif /* TSCH_INIT_SCHEDULE_FROM_EB */
 
-#if TSCH_CONF_SYNC_WITH_LOWER_NODE_ID
-    int nbr_id = nodeid_from_linkaddr((linkaddr_t *)&frame.src_addr);
-    if(nbr_id == 0 || nbr_id >= node_id) {
-      return 0;
-    }
-#endif
-
-  if(tsch_join_priority <= TSCH_MAX_JOIN_PRIORITY) {
+  if(tsch_join_priority < TSCH_MAX_JOIN_PRIORITY) {
     struct tsch_neighbor *n;
 
     /* Add coordinator to list of neighbors, lock the entry */
@@ -681,7 +665,7 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
 #endif
 
       tsch_association_count++;
-      LOG_WARN("association done (%u), sec %u, PAN ID %x, asn-%x.%lx, jp %u, timeslot id %u, hopping id %u, slotframe len %u with %u links, from ",
+      LOG_INFO("association done (%u), sec %u, PAN ID %x, asn-%x.%lx, jp %u, timeslot id %u, hopping id %u, slotframe len %u with %u links, from ",
              tsch_association_count,
              tsch_is_pan_secured,
              frame.src_pid,
@@ -690,8 +674,8 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
              ies.ie_channel_hopping_sequence_id,
              ies.ie_tsch_slotframe_and_link.slotframe_size,
              ies.ie_tsch_slotframe_and_link.num_links);
-      LOG_WARN_LLADDR((const linkaddr_t *)&frame.src_addr);
-      LOG_WARN_("\n");
+      LOG_INFO_LLADDR((const linkaddr_t *)&frame.src_addr);
+      LOG_INFO_("\n");
 
       return 1;
     }
@@ -722,25 +706,18 @@ PT_THREAD(tsch_scan(struct pt *pt))
 
   while(!tsch_is_associated && !tsch_is_coordinator) {
     /* Hop to any channel offset */
-    static int current_channel = -1;
+    static uint8_t current_channel = 0;
 
     /* We are not coordinator, try to associate */
     rtimer_clock_t t0;
     int is_packet_pending = 0;
     clock_time_t now_time = clock_time();
-    if(NETSTACK_RADIO.get_object(RADIO_CONST_TSCH_TIMING, &tsch_timing, sizeof(rtimer_clock_t *)) != RADIO_RESULT_OK) {
-      tsch_timing = TSCH_CONF_MULTIPHY_DEFAULT_TIMING;
-    }
 
     /* Switch to a (new) channel for scanning */
-    if(current_channel == -1 || now_time - current_channel_since > TSCH_CHANNEL_SCAN_DURATION) {
+    if(current_channel == 0 || now_time - current_channel_since > TSCH_CHANNEL_SCAN_DURATION) {
       /* Pick a channel at random in TSCH_JOIN_HOPPING_SEQUENCE */
-#if TSCH_CONF_NO_HOPPING_SEQUENCE
-      uint8_t scan_channel = 0;
-#else
       uint8_t scan_channel = TSCH_JOIN_HOPPING_SEQUENCE[
           random_rand() % sizeof(TSCH_JOIN_HOPPING_SEQUENCE)];
-#endif
 
       NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, scan_channel);
       current_channel = scan_channel;
@@ -856,14 +833,7 @@ PROCESS_THREAD(tsch_send_eb_process, ev, data)
   while(1) {
     unsigned long delay;
 
-    int should_send_eb = tsch_is_associated && tsch_current_eb_period > 0;
-#if EB_ONLY_COORDINATOR
-    if(!tsch_is_coordinator) {
-      should_send_eb = 0;
-    }
-#endif
-
-    if(should_send_eb) {
+    if(tsch_is_associated && tsch_current_eb_period > 0) {
       /* Enqueue EB only if there isn't already one in queue */
       if(tsch_queue_packet_count(&tsch_eb_address) == 0) {
         uint8_t hdr_len = 0;
@@ -886,8 +856,8 @@ PROCESS_THREAD(tsch_send_eb_process, ev, data)
     if(tsch_current_eb_period > 0) {
       /* Next EB transmission with a random delay
        * within [tsch_current_eb_period*0.75, tsch_current_eb_period[ */
-      delay = (tsch_current_eb_period / 4)
-        + random_rand() % (tsch_current_eb_period - tsch_current_eb_period / 4);
+      delay = (tsch_current_eb_period - tsch_current_eb_period / 4)
+        + random_rand() % (tsch_current_eb_period / 4);
     } else {
       delay = TSCH_EB_PERIOD;
     }
@@ -962,7 +932,6 @@ tsch_init(void)
     LOG_ERR("! radio does not support getting last packet timestamp. Abort init.\n");
     return;
   }
-
   /* Check max hopping sequence length vs default sequence length */
   if(TSCH_HOPPING_SEQUENCE_MAX_LEN < sizeof(TSCH_DEFAULT_HOPPING_SEQUENCE)) {
     LOG_ERR("! TSCH_HOPPING_SEQUENCE_MAX_LEN < sizeof(TSCH_DEFAULT_HOPPING_SEQUENCE). Abort init.\n");

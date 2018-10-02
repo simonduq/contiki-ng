@@ -85,6 +85,7 @@ unsigned radio_byte_air_time(void);
 unsigned radio_delay_before_tx(void);
 unsigned radio_delay_before_rx(void);
 unsigned radio_delay_before_detect(void);
+uint16_t *radio_tsch_timeslot_timing(void);
 
 /** @} */
 /*---------------------------------------------------------------------------*/

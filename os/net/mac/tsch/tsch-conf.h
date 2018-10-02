@@ -48,6 +48,13 @@
 
 /******** Configuration: synchronization *******/
 
+/* TSCH timeslot timing template */
+#ifdef TSCH_CONF_DEFAULT_TIMESLOT_TIMING
+#define TSCH_DEFAULT_TIMESLOT_TIMING TSCH_CONF_DEFAULT_TIMESLOT_TIMING
+#else
+#define TSCH_DEFAULT_TIMESLOT_TIMING TSCH_TIMESLOT_TIMING_10000
+#endif
+
 /* Max time before sending a unicast keep-alive message to the time source */
 #ifdef TSCH_CONF_KEEPALIVE_TIMEOUT
 #define TSCH_KEEPALIVE_TIMEOUT TSCH_CONF_KEEPALIVE_TIMEOUT
@@ -414,6 +421,8 @@ by default, useful in case of duplicate seqno */
 #else
 #define TSCH_RADIO_ON_DURING_TIMESLOT 0
 #endif
+
+
 
 /* Timeslot timing */
 #ifndef TSCH_CONF_DEFAULT_TIMESLOT_LENGTH

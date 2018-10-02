@@ -292,6 +292,13 @@ radio_delay_before_detect(void) {
   return (unsigned)ret;
 }
 /*---------------------------------------------------------------------------*/
+uint16_t *
+radio_tsch_timeslot_timing(void) {
+  uint16_t *ret;
+  NETSTACK_RADIO.get_object(RADIO_CONST_TSCH_TIMING, &ret, sizeof(ret));
+  return ret;
+}
+/*---------------------------------------------------------------------------*/
 /**
  * @}
  * @}
