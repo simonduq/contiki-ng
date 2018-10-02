@@ -104,6 +104,8 @@ uint16_t *radio_tsch_timeslot_timing(void);
 #undef RADIO_DELAY_BEFORE_DETECT
 #define RADIO_DELAY_BEFORE_DETECT radio_delay_before_detect()
 
+#define TSCH_CONF_DEFAULT_TIMESLOT_TIMING   radio_tsch_timeslot_timing()
+
 #ifndef TSCH_CONF_BASE_DRIFT_PPM
 /* The drift compared to "true" 10ms slots.
  * Enable adaptive sync to enable compensation for this.
