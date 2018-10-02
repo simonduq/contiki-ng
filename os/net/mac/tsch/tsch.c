@@ -742,11 +742,10 @@ PT_THREAD(tsch_scan(struct pt *pt))
           random_rand() % sizeof(TSCH_JOIN_HOPPING_SEQUENCE)];
 #endif
 
-      if(current_channel != scan_channel) {
-        NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, scan_channel);
-        current_channel = scan_channel;
-        LOG_INFO("scanning on channel %u\n", scan_channel);
-      }
+      NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, scan_channel);
+      current_channel = scan_channel;
+      LOG_INFO("scanning on channel %u\n", scan_channel);
+
       current_channel_since = now_time;
     }
 
