@@ -42,6 +42,7 @@
 #include "net/packetbuf.h"
 #include "net/linkaddr.h"
 #include "net/netstack.h"
+#include "net/mac/tsch/tsch.h"
 #include "sys/energest.h"
 #include "dev/cc2538-rf.h"
 #include "dev/rfcore.h"
@@ -871,7 +872,7 @@ get_value(radio_param_t param, radio_value_t *value)
   case RADIO_CONST_PHY_OVERHEAD:
     *value = (radio_value_t)3; /* 1 len byte, 2 bytes CRC */
   case RADIO_CONST_BYTE_AIR_TIME:
-    *value = (radio_value_t)16; /* 250kbps data rate. One byte = 32us.*/
+    *value = (radio_value_t)32; /* 250kbps data rate. One byte = 32us.*/
     return RADIO_RESULT_OK;
   case RADIO_CONST_DELAY_BEFORE_TX:
     *value = (radio_value_t)CC2538_DELAY_BEFORE_TX;
@@ -973,6 +974,14 @@ get_object(radio_param_t param, void *dest, size_t size)
       return RADIO_RESULT_INVALID_VALUE;
     }
     *(rtimer_clock_t *)dest = get_sfd_timestamp();
+    return RADIO_RESULT_OK;
+  }
+
+  if(param == RADIO_CONST_TSCH_TIMING) {
+    if(size != sizeof(uint16_t *) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(uint16_t **)dest = tsch_timeslot_timing_us_10000;
     return RADIO_RESULT_OK;
   }
 

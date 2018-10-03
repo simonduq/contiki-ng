@@ -97,11 +97,8 @@ uint16_t *radio_tsch_timeslot_timing(void);
 
 #define RADIO_PHY_OVERHEAD        radio_phy_overhead()
 #define RADIO_BYTE_AIR_TIME       radio_byte_air_time()
-#undef RADIO_DELAY_BEFORE_TX
 #define RADIO_DELAY_BEFORE_TX     radio_delay_before_tx()
-#undef RADIO_DELAY_BEFORE_RX
 #define RADIO_DELAY_BEFORE_RX     radio_delay_before_rx()
-#undef RADIO_DELAY_BEFORE_DETECT
 #define RADIO_DELAY_BEFORE_DETECT radio_delay_before_detect()
 
 #define TSCH_CONF_DEFAULT_TIMESLOT_TIMING   radio_tsch_timeslot_timing()

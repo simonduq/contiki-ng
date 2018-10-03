@@ -76,7 +76,6 @@
 /* A 64-bit version because the 32-bit one cannot handle T >= 4295 ticks.
    Intended only for positive values of T. */
 #define RTIMERTICKS_TO_US_64(T)  ((uint32_t)(((uint64_t)(T) * 1000000 + ((RTIMER_ARCH_SECOND) / 2)) / (RTIMER_ARCH_SECOND)))
-#define US_TO_RTIMERTICKS_64(US) ((uint32_t)(((uint64_t)(US) * (RTIMER_ARCH_SECOND) + 500000) / 1000000L))
 
 /** \sa RTIMER_NOW() */
 rtimer_clock_t rtimer_arch_now(void);
