@@ -6,11 +6,6 @@ notifications:
 
 # Environment setup before test script. Runs for each build
 before_install:
-  ->
-    if ! [ $CRON_TASK == true ]; then
-      echo "Task not intended for Travis Cron task, skipping"
-      exit 1
-    fi
   # Check if anything has changed within the docker directory
   - DOCKER_CHANGED=`git diff --name-only $TRAVIS_COMMIT_RANGE -- tools/docker | wc -l`
   # If Docker directory has not changed, pull image from Dockerhub. Else, build
@@ -71,6 +66,3 @@ env:
     - TEST_NAME='compile-tools'
     - TEST_NAME='native-runs'
     - TEST_NAME='ipv6'
-    - TEST_NAME='compile-all' CRON_TASK=true
-    - TEST_NAME='rpl-lite' CRON_TASK=true
-    - TEST_NAME='rpl-classic' CRON_TASK=true
