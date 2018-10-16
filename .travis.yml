@@ -7,6 +7,8 @@ notifications:
 # Environment setup before test script. Runs for each build
 before_install:
   - >
+    echo $CRON_ONLY
+    echo $TRAVIS_EVENT_TYPE
     if [ $CRON_ONLY == true ] && [ $TRAVIS_EVENT_TYPE == cron ]; then
       echo "Task reserved for Cron jobs, skipping."
       exit 1
