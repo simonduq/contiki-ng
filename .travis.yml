@@ -66,3 +66,4 @@ env:
     - TEST_NAME='compile-tools'
     - TEST_NAME='native-runs'
     - TEST_NAME='ipv6'
+    - TEST_NAME='rpl-lite' CRON_TASK=true
