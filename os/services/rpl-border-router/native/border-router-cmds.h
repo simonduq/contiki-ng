@@ -43,6 +43,7 @@
 
 extern uint8_t command_context;
 
+void border_router_set_rf_defaults(void);
 PROCESS_NAME(border_router_cmd_process);
 
 #endif /* BORDER_ROUTER_CMDS_H_ */

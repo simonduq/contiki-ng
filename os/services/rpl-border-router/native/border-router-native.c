@@ -136,6 +136,9 @@ PROCESS_THREAD(border_router_process, ev, data)
     }
   }
 
+
+  border_router_set_rf_defaults();
+
   print_local_addresses();
 
   while(1) {

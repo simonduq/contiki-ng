@@ -275,6 +275,15 @@ serial_shell_output(const char *str)
 }
 /*---------------------------------------------------------------------------*/
 
+void
+border_router_set_rf_defaults(void)
+{
+  /* Set the defaults at start */
+  printf("Setting RF params in SR\n");
+  set_radio_param(RADIO_PARAM_CHANNEL, IEEE802154_DEFAULT_CHANNEL & 0xff);
+  set_radio_param(RADIO_PARAM_PAN_ID, IEEE802154_PANID);
+}
+
 PROCESS_THREAD(border_router_cmd_process, ev, data)
 {
   static struct pt shell_input_pt;
