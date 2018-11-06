@@ -62,6 +62,8 @@ void shell_command_set_register(struct shell_command_set_t *);
 int shell_command_set_deregister(struct shell_command_set_t *);
 const struct shell_command_t *shell_command_lookup(const char *);
 
+const char * shell_dectoi(const char *buf, int *v);
+
 /**
  * Initializes Shell-commands module
  */
