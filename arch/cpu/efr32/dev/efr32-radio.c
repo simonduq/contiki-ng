@@ -491,7 +491,8 @@ transmit(unsigned short transmit_len)
   RAIL_Status_t     status;
   int ret = RADIO_TX_OK;
 
-  if(tx_status != TX_IDLE) {
+  if(tx_status == TX_SENDING) {
+    PRINTF("EFR32 radio: already sending in tx: %d\n", tx_status);
     return RADIO_TX_ERR;
   }
 
