@@ -32,6 +32,7 @@
 #include "dev/button-sensor.h"
 #include "bmp-280-sensor.h"
 #include "si1133-sensor.h"
+#include "ccs811.h"
 #include "rgbleds.h"
 #include <stdbool.h>
 /*---------------------------------------------------------------------------*/
@@ -39,6 +40,8 @@
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_INFO
 /*---------------------------------------------------------------------------*/
+void efr_cmds_init(void);
+
 PROCESS(test_process, "BMP280 tester");
 AUTOSTART_PROCESSES(&test_process);
 /*---------------------------------------------------------------------------*/
@@ -46,32 +49,37 @@ PROCESS_THREAD(test_process, ev, data)
 {
   static struct etimer periodic_timer;
   static int enable = 0;
+  static int ctr;
   int32_t temp;
   int32_t lux;
   uint32_t pressure;
 
   PROCESS_BEGIN();
 
+  efr_cmds_init();
+
   etimer_set(&periodic_timer, CLOCK_SECOND);
   while(true) {
     PROCESS_WAIT_EVENT();
 
     if(ev == PROCESS_EVENT_TIMER) {
-      lux = si1133_sensor.value(SI1133_SENSOR_TYPE_LUX);
-      temp = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_TEMP);
-      pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
+      ctr++;
 
-      //  bmp_get_temperature_pressure(&temp, &pressure);
+      if(ctr == 30) {
+        lux = si1133_sensor.value(SI1133_SENSOR_TYPE_LUX);
+        temp = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_TEMP);
+        pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
 
-      LOG_INFO("Time: %6lu  Light: %d.%03d Temp: %2"PRId32".%03"PRId32"  Pressure: %4"PRIu32".%03"PRIu32"  BLeft:%d\n",
-               (unsigned long)clock_time(),
-               (int) (lux / 1000), (int) (lux % 1000),
-               (temp / 1000), (temp % 1000),
-               (pressure / 1000), (pressure % 1000),
-               button_left_sensor.value(0));
-
+        LOG_INFO("Time: %6lu  Light: %d.%03d Temp: %2"PRId32".%03"PRId32"  Pressure: %4"PRIu32".%03"PRIu32"  BLeft:%d\n",
+                 (unsigned long)clock_time(),
+                 (int) (lux / 1000), (int) (lux % 1000),
+                 (temp / 1000), (temp % 1000),
+                 (pressure / 1000), (pressure % 1000),
+                 button_left_sensor.value(0));
+        ctr = 0;
+      }
+      /* Blink a bit with the RGB leds */
       rgbleds_enable(enable++ & 0xf);
-
       rgbleds_setcolor((clock_time() >> 0) & 0xffff,
                        (clock_time() >> 2) & 0xffff,
                        (clock_time() >> 4) & 0xffff);

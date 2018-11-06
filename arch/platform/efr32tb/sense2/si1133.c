@@ -7,7 +7,7 @@
 #include "clock.h"
 #include "watchdog.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -406,12 +406,13 @@ int si1133_init(void)
 {
   int retval = 0;
   uint8_t id;
+  CMU_ClockEnable(cmuClock_GPIO, true);
 
   /* enable Si1133 on the Sense 2 board */
   GPIO_PinModeSet(BOARD_ENV_ENABLE_PORT, BOARD_ENV_ENABLE_PIN,
                   gpioModePushPull, 1);
 
-  clock_delay(CLOCK_SECOND / 10);
+  clock_wait(CLOCK_SECOND);
 
   if(i2c_acquire(&lux_sens) > 0) {
     return 1;
@@ -419,13 +420,13 @@ int si1133_init(void)
 
   retval = i2c_read_register(&lux_sens, SI1133_REG_PART_ID, &id, 1);
 
-  PRINTF("SI1133: Part ID: %x\n", id);
+  PRINTF("SI1133: Part ID: %x (ret=%d)\n", id, retval);
 
   /* Perform the Reset Command */
   retval = i2c_write_register(&lux_sens, SI1133_REG_COMMAND,
                               SI1133_CMD_RESET);
   /* wait for reset to complete */
-  clock_delay(CLOCK_SECOND / 10);
+  clock_wait(CLOCK_SECOND);
 
   retval += SI1133_paramSet(SI1133_PARAM_CH_LIST, 0x0f);
   retval += SI1133_paramSet(SI1133_PARAM_ADCCONFIG0, 0x78);

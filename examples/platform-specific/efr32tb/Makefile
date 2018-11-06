@@ -1,5 +1,5 @@
 CONTIKI_PROJECT = test-sensors
-
+CONTIKI_TARGET_SOURCEFILES += efr-cmds.c
 all: $(CONTIKI_PROJECT)
 
 MODULES += os/services/shell
