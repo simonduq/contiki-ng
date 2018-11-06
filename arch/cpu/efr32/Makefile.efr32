@@ -37,6 +37,7 @@ EXTERNALDIRS += $(addprefix $(GECKO_SDK_PLATFORM)/,$(INC_PATHS))
 EFR32MG    := clock.c \
               rtimer-arch.c \
               dbg.c \
+              slip-arch.c \
               watchdog.c \
               efr32-radio.c \
               i2c-arch.c
