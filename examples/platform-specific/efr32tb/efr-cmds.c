@@ -81,12 +81,12 @@ PT_THREAD(cmd_sensor(struct pt *pt, shell_output_func output, char *args))
   PT_END(pt);
 }
 
-const struct shell_command_t efr32_shell_commands[] = {
+static const struct shell_command_t efr32_shell_commands[] = {
   { "sensor",           cmd_sensor,           "'> sensor <name>': reads out data from sensors (light, temp, pressure)" },
+  { NULL, NULL, NULL }
 };
 
 static struct shell_command_set_t efr32_commands = {
   .next = NULL,
   .commands = efr32_shell_commands,
 };
-
