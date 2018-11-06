@@ -62,8 +62,22 @@ i2c_bus_t i2c1_bus = {.lock_device = NULL,
 i2c_device_t lux_sens = {.bus = &i2c1_bus,
                         .speed = I2C_NORMAL_BUS_SPEED,
                         .timeout = 1000,
-                         .address = (0xAA >> 1)
+                         .address = 0xAA
                        };
+
+/* NOTE: this is the same I2C but other config do we support that ? */
+i2c_bus_t i2c2_bus = {.lock_device = NULL,
+                      .lock = 0,
+                      .config = {.I2Cx = I2C1,
+                                 .sda_loc = _I2C_ROUTELOC0_SDALOC_LOC6,
+                                 .scl_loc = _I2C_ROUTELOC0_SCLLOC_LOC6},
+                    };
+
+i2c_device_t ccs811_dev = {.bus = &i2c2_bus,
+                           .speed = I2C_NORMAL_BUS_SPEED,
+                           .timeout = CCS811_I2C_BUS_TIMEOUT,
+                           .address = CCS811_BUS_ADDRESS,
+                          };
 
 /*---------------------------------------------------------------------------*/
 void button_sensor_button_irq(int button);
@@ -105,9 +119,82 @@ board_init(void)
   SENSORS_ACTIVATE(si1133_sensor);
   SENSORS_ACTIVATE(bmp_280_sensor);
 
+
+  /*********************************************************************/
+  /** Gas sensor pin config                                           **/
+  /*********************************************************************/
+
+   if(0) {
+     int status;
+
+     GPIO_PinModeSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_ENABLE_PIN,
+                     gpioModePushPull, 0);
+     GPIO_PinModeSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_WAKE_PIN,
+                     gpioModeDisabled, 0);
+
+     CCS811_init();
+
+     CCS811_dumpRegisters();
+
+
+     status = CCS811_startApplication();
+     if(status == CCS811_OK) {
+       status = CCS811_setMeasureMode(CCS811_MEASURE_MODE_DRIVE_MODE_10SEC);
+     }
+     printf("CCS811 init status: %x\r\n", (unsigned int)status);
+
+     if(status == CCS811_OK) {
+       uint16_t eco2;
+       uint16_t tvoc;
+       status = CCS811_getMeasurement(&eco2, &tvoc);
+       printf("CCS811: eco2: %d  tvoc: %d\n", eco2, tvoc);
+     }
+   }
+
   rgbleds_init();
 }
 
+/***************************************************************************//**
+ * @brief
+ *    Enables or disables the Air Quality / Gas Sensor
+ *
+ * @param[in] enable
+ *    Set true to enable, false to disable
+ *
+ * @return
+ *    Returns zero on OK, non-zero otherwise
+ ******************************************************************************/
+uint32_t board_gas_sensor_enable(int enable)
+{
+  if ( enable ) {
+    /* Enable pin */
+    GPIO_PinOutSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_ENABLE_PIN);
+
+     /* Wake pin */
+    GPIO_PinModeSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_WAKE_PIN, gpioModePushPull, 1);
+  } else {
+    /* Wake pin */
+    GPIO_PinModeSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_WAKE_PIN, gpioModeDisabled, 0);
+    /* Enable pin */
+    GPIO_PinOutClear(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_ENABLE_PIN);
+  }
+
+  return 1;
+}
+
+uint32_t
+board_gas_sensor_wake(int wake)
+{
+  if(wake) {
+    GPIO_PinOutClear(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_WAKE_PIN);
+    clock_delay_usec(10 * 1000);
+  } else {
+    GPIO_PinOutSet(BOARD_CCS811_CTRL_PORT, BOARD_CCS811_WAKE_PIN);
+    clock_delay_usec(10 * 1000);
+  }
+
+  return 1;
+}
 /*---------------------------------------------------------------------------*/
 /** \brief Exports a global symbol to be used by the sensor API */
 SENSORS(&button_left_sensor, &button_right_sensor, &si1133_sensor, &bmp_280_sensor);
