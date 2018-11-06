@@ -62,26 +62,11 @@
 DEFINE_BUF_QUEUE(EMDRV_UARTDRV_MAX_CONCURRENT_RX_BUFS, sUartRxQueue);
 DEFINE_BUF_QUEUE(EMDRV_UARTDRV_MAX_CONCURRENT_TX_BUFS, sUartTxQueue);
 
-#define kReceiveFifoSize 128
-
 static UARTDRV_HandleData_t sUartHandleData;
 static UARTDRV_Handle_t     sUartHandle = &sUartHandleData;
 static uint8_t              sReceiveBuffer[2];
 static volatile uint8_t     txbuzy = 0;
 static int (* input_handler)(unsigned char c);
-
-typedef struct ReceiveFifo_t
-{
-  // The data buffer
-  uint8_t mBuffer[kReceiveFifoSize];
-  // The offset of the first item written to the list.
-  uint16_t mHead;
-  // The offset of the next item to be written to the list.
-  uint16_t mTail;
-} ReceiveFifo_t;
-
-
-static ReceiveFifo_t sReceiveFifo;
 
 #define TX_SIZE 1024
 static uint8_t tx_buf[TX_SIZE];
@@ -92,19 +77,16 @@ static uint16_t wpos = 0;
 
 /* The process for receiving packets */
 PROCESS(serial_proc, "efr32 serial driver");
-
+/*---------------------------------------------------------------------------*/
 static void
 receiveDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_Count_t aCount)
 {
-  /* We can only write if incrementing mTail doesn't equal mHead */
-  if(sReceiveFifo.mHead != (sReceiveFifo.mTail + 1) % kReceiveFifoSize) {
-    sReceiveFifo.mBuffer[sReceiveFifo.mTail] = aData[0];
-    sReceiveFifo.mTail = (sReceiveFifo.mTail + 1) % kReceiveFifoSize;
+  if(input_handler != NULL) {
+    input_handler(aData[0]);
   }
   UARTDRV_Receive(aHandle, aData, 1, receiveDone);
-  process_poll(&serial_proc);
 }
-
+/*---------------------------------------------------------------------------*/
 static void
 transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_Count_t aCount)
 {
@@ -115,46 +97,15 @@ transmitDone(UARTDRV_Handle_t aHandle, Ecode_t aStatus, uint8_t *aData, UARTDRV_
   txbuzy = 0;
   process_poll(&serial_proc);
 }
-
-static void
-process_receive(void)
-{
-  if(input_handler == NULL) {
-    return;
-  }
-  // Copy tail to prevent multiple reads
-  uint16_t tail = sReceiveFifo.mTail;
-  int i;
-  // If the data wraps around, process the first part
-  if(sReceiveFifo.mHead > tail) {
-    for(i = sReceiveFifo.mHead; i < kReceiveFifoSize; i++) {
-      input_handler(sReceiveFifo.mBuffer[i]);
-    }
-    /* Reset the buffer mHead back to zero. */
-    sReceiveFifo.mHead = 0;
-  }
-
-  // For any data remaining, process it
-  if(sReceiveFifo.mHead != tail) {
-    for(i = sReceiveFifo.mHead; i < tail; i++) {
-      input_handler(sReceiveFifo.mBuffer[i]);
-      /* Set mHead to the local tail we have cached */
-      sReceiveFifo.mHead = tail;
-    }
-  }
-}
-
-
-void dbg_init(void)
+/*---------------------------------------------------------------------------*/
+void
+dbg_init(void)
 {
   UARTDRV_Init_t uartInit = USART_INIT;
 
 #ifdef SERIAL_BAUDRATE
   uartInit.baudRate = SERIAL_BAUDRATE;
 #endif /* SERIAL_BAUDRATE */
-
-  sReceiveFifo.mHead = 0;
-  sReceiveFifo.mTail = 0;
 
   UARTDRV_Init(sUartHandle, &uartInit);
 
@@ -238,7 +189,6 @@ PROCESS_THREAD(serial_proc, ev, data)
   PROCESS_BEGIN();
   while(1) {
     PROCESS_WAIT_EVENT();
-    process_receive();
     process_transmit();
   }
   PROCESS_END();
