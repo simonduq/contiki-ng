@@ -71,6 +71,20 @@ typedef uint32_t uip_stats_t;
 /** @} */
 
 #define LEDS_CONF_LEGACY_API                    1
+
+#ifndef SLIP_ARCH_CONF_ENABLED
+/*
+ * Determine whether we need SLIP
+ * This will keep working while UIP_FALLBACK_INTERFACE and CMD_CONF_OUTPUT
+ * keep using SLIP
+ */
+#if defined(UIP_FALLBACK_INTERFACE) || defined(CMD_CONF_OUTPUT)
+#define SLIP_ARCH_CONF_ENABLED      1
+#else
+#define SLIP_ARCH_CONF_ENABLED      0
+#endif
+#endif
+
 /*---------------------------------------------------------------------------*/
 /**
  * \name SPI configuration

@@ -32,12 +32,21 @@
 #include "dev/slip.h"
 #include "dbg.h"
 
+void dbg_write_byte(const char ch);
+void dbg_flush(void);
+
 void dbg_set_input_handler(int (* handler)(unsigned char c));
+
+#define SLIP_END     0300
+
 /*---------------------------------------------------------------------------*/
 void
 slip_arch_writeb(unsigned char c)
 {
-  dbg_putchar(c);
+  dbg_write_byte(c);
+  if(c == SLIP_END) {
+    dbg_flush();
+  }
 }
 /*---------------------------------------------------------------------------*/
 void

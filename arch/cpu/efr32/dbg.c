@@ -68,7 +68,9 @@ static uint8_t              sReceiveBuffer[2];
 static volatile uint8_t     txbuzy = 0;
 static int (* input_handler)(unsigned char c);
 
-#define TX_SIZE 1024
+#define SLIP_END     0300
+
+#define TX_SIZE 2048
 static uint8_t tx_buf[TX_SIZE];
 /* first char to read */
 static uint16_t rpos = 0;
@@ -116,13 +118,11 @@ dbg_init(void)
                     sizeof(sReceiveBuffer[i]), receiveDone);
   }
 }
-
-
 /*---------------------------------------------------------------------------*/
 static unsigned char buf[64];
 
-static void
-process_transmit(void)
+void
+dbg_flush(void)
 {
   /* send max 64 per transmit */
   int len = 0;
@@ -156,26 +156,53 @@ process_transmit(void)
 }
 
 /*---------------------------------------------------------------------------*/
+void
+dbg_write_byte(const char ch)
+{
+  /* This will drop bytes if too many printed too soon */
+  if(rpos == (wpos + 1) % TX_SIZE) {
+    /* Overflow - drop data */
+  } else {
+    tx_buf[wpos] = ch;
+    wpos = (wpos + 1) % TX_SIZE;
+  }
+  process_poll(&serial_proc);
+}
+/*---------------------------------------------------------------------------*/
+void
+dbg_putchar(const char ch)
+{
+#if SLIP_ARCH_CONF_ENABLED
+  static char debug_frame = 0;
+
+  if(!debug_frame) {
+    dbg_write_byte(SLIP_END);
+    dbg_write_byte('\r');
+    debug_frame = 1;
+  }
+#endif /* SLIP_ARCH_CONF_ENABLED */
+
+  dbg_write_byte(ch);
+
+  if(ch == '\n') {
+#if SLIP_ARCH_CONF_ENABLED
+    dbg_write_byte(SLIP_END);
+    debug_frame = 0;
+#endif /* SLIP_ARCH_CONF_ENABLED */
+    dbg_flush();
+  }
+}
+/*---------------------------------------------------------------------------*/
 unsigned int
 dbg_send_bytes(const unsigned char *seq, unsigned int len)
 {
   /* how should we handle this to not get trashed data... */
   int i;
-  /* This will drop bytes if too many printed too soon */
   for(i = 0; i < len; i++) {
-    tx_buf[wpos] = seq[i];
-    wpos = (wpos + 1) % TX_SIZE;
+    dbg_putchar(seq[i]);
   }
-  process_transmit();
-  process_poll(&serial_proc);
+  dbg_flush();
   return len;
-}
-
-/*---------------------------------------------------------------------------*/
-void
-dbg_putchar(const char ch)
-{
-  dbg_send_bytes((uint8_t *)&ch, 1);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -189,7 +216,7 @@ PROCESS_THREAD(serial_proc, ev, data)
   PROCESS_BEGIN();
   while(1) {
     PROCESS_WAIT_EVENT();
-    process_transmit();
+    dbg_flush();
   }
   PROCESS_END();
 }
