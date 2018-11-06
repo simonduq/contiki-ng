@@ -152,6 +152,46 @@ extern const struct sensors_sensor button_right_sensor;
 #define BOARD_RGBLED_COM3_PORT    gpioPortI       /**< RGB LED COM3 port                */
 #define BOARD_RGBLED_COM3_PIN     3               /**< RGB LED COM3 pin                 */
 
+
+#define CCS811_I2C_BUS_TIMEOUT (1000)
+#define CCS811_BUS_ADDRESS     (0xB4)
+#define CCS811_FIRMWARE_UPDATE (0)
+#define CCS811_HW_ID           (0x20)
+
+#define CCS811_I2C_DEVICE      (I2C1)
+#define CCS811_SDA_LOCATION    (I2C_ROUTELOC0_SDALOC_LOC6)
+#define CCS811_SCL_LOCATION    (I2C_ROUTELOC0_SCLLOC_LOC6)
+#define CCS811_SDA_LOC         6
+#define CCS811_SCL_LOC         6
+#define CCS811_SDA_PORT        gpioPortB
+#define CCS811_SDA_PIN         6
+#define CCS811_SCL_PORT        gpioPortB
+#define CCS811_SCL_PIN         7
+
+#define BOARD_CCS811_CTRL_PORT      gpioPortF     /**< Gas sensor enable port           */
+#define BOARD_CCS811_INT_PIN        13            /**< Gas sensor interrupt pin         */
+#define BOARD_CCS811_ENABLE_PIN     14            /**< Gas sensor enable pin            */
+#define BOARD_CCS811_WAKE_PIN       15            /**< Gas sensor nWAKE pin             */
+#define BOARD_CCS811_I2C_PORT       gpioPortB     /**< Gas sensor I2C port              */
+#define BOARD_CCS811_I2C_SDA_PIN    6             /**< Gas sensor I2C SDA pin           */
+#define BOARD_CCS811_I2C_SCL_PIN    7             /**< Gas sensor I2C SCL pin           */
+#define BOARD_CCS811_I2C_ROUTELOC0  (I2C_ROUTELOC0_SDALOC_LOC6 | I2C_ROUTELOC0_SCLLOC_LOC6)
+
+
+#define I2CSPM_INIT_CCS811                                                   \
+  { CCS811_I2C_DEVICE,        /* I2C instance                             */ \
+    CCS811_SCL_PORT,          /* SCL port                                 */ \
+    CCS811_SCL_PIN,           /* SCL pin                                  */ \
+    CCS811_SDA_PORT,          /* SDA port                                 */ \
+    CCS811_SDA_PIN,           /* SDA pin                                  */ \
+    CCS811_SCL_LOC,           /* Port location of SCL signal              */ \
+    CCS811_SDA_LOC,           /* Port location of SDA signal              */ \
+    0,                        /* Use currently configured reference clock */ \
+    I2C_FREQ_STANDARD_MAX,    /* Set to standard rate                     */ \
+    i2cClockHLRStandard,      /* Set to use 4:4 low/high duty cycle       */ \
+  }
+
+
 /* External interrupts */
 #define EXTI_BUTTON1              15
 #define EXTI_BUTTON0              14
@@ -162,5 +202,7 @@ extern const struct sensors_sensor button_right_sensor;
 
 
 uint32_t board_imu_enable(int enable);
+uint32_t board_gas_sensor_enable(int enable);
+uint32_t board_gas_sensor_wake(int wake);
 
 #endif /* BOARD_H_ */

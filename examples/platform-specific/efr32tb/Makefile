@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = test-bmp280
+CONTIKI_PROJECT = test-sensors
 
 all: $(CONTIKI_PROJECT)
 

@@ -39,6 +39,7 @@
 #include "leds.h"
 #include "lib/sensors.h"
 #include "bmp-280-sensor.h"
+#include "si1133-sensor.h"
 
 /* Temperature reading */
 static lwm2m_status_t
@@ -55,6 +56,15 @@ read_bar_value(const ipso_sensor_t *s, int32_t *value)
   uint32_t pressure;
   pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
   *value = pressure;
+  return LWM2M_STATUS_OK;
+}
+/* Lux reading */
+static lwm2m_status_t
+read_lux_value(const ipso_sensor_t *s, int32_t *value)
+{
+  uint32_t lux;
+  lux = si1133_sensor.value(SI1133_SENSOR_TYPE_LUX);
+  *value = lux;
   return LWM2M_STATUS_OK;
 }
 
@@ -99,11 +109,20 @@ IPSO_SENSOR(bar_sensor, 3315, read_bar_value,
             .unit = "hPa",
             .update_interval = 30
             );
+
+IPSO_SENSOR(lux_sensor, 3301, read_lux_value,
+            .max_range = 50000000, /* 50000 lux? */
+            .min_range = 0,
+            .unit = "lux",
+            .update_interval = 30
+            );
+
 void
 board_ipso_sensors_init(void)
 {
   ipso_sensor_add(&temp_sensor);
   ipso_sensor_add(&bar_sensor);
+  ipso_sensor_add(&lux_sensor);
   ipso_control_add(&led_control_red);
   ipso_control_add(&led_control_green);
   ipso_button_init();

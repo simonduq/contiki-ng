@@ -37,7 +37,10 @@
 #include "button-sensor.h"
 #include "gpiointerrupt.h"
 #include "bmp-280-sensor.h"
+#include "si1133-sensor.h"
+#include "ccs811.h"
 #include "rgbleds.h"
+#include "board.h"
 
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
@@ -55,6 +58,12 @@ i2c_bus_t i2c1_bus = {.lock_device = NULL,
                                  .sda_loc = _I2C_ROUTELOC0_SDALOC_LOC17,
                                  .scl_loc = _I2C_ROUTELOC0_SCLLOC_LOC17},
                     };
+
+i2c_device_t lux_sens = {.bus = &i2c1_bus,
+                        .speed = I2C_NORMAL_BUS_SPEED,
+                        .timeout = 1000,
+                         .address = (0xAA >> 1)
+                       };
 
 /*---------------------------------------------------------------------------*/
 void button_sensor_button_irq(int button);
@@ -93,11 +102,13 @@ board_init(void)
   GPIOINT_CallbackRegister(EXTI_BUTTON0, gpioInterruptHandler);
   GPIOINT_CallbackRegister(EXTI_BUTTON1, gpioInterruptHandler);
 
+  SENSORS_ACTIVATE(si1133_sensor);
   SENSORS_ACTIVATE(bmp_280_sensor);
 
   rgbleds_init();
 }
+
 /*---------------------------------------------------------------------------*/
 /** \brief Exports a global symbol to be used by the sensor API */
-SENSORS(&button_left_sensor, &button_right_sensor, &bmp_280_sensor);
+SENSORS(&button_left_sensor, &button_right_sensor, &si1133_sensor, &bmp_280_sensor);
 /*---------------------------------------------------------------------------*/

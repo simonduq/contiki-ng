@@ -31,6 +31,7 @@
 #include "contiki.h"
 #include "dev/button-sensor.h"
 #include "bmp-280-sensor.h"
+#include "si1133-sensor.h"
 #include "rgbleds.h"
 #include <stdbool.h>
 /*---------------------------------------------------------------------------*/
@@ -46,6 +47,7 @@ PROCESS_THREAD(test_process, ev, data)
   static struct etimer periodic_timer;
   static int enable = 0;
   int32_t temp;
+  int32_t lux;
   uint32_t pressure;
 
   PROCESS_BEGIN();
@@ -55,13 +57,16 @@ PROCESS_THREAD(test_process, ev, data)
     PROCESS_WAIT_EVENT();
 
     if(ev == PROCESS_EVENT_TIMER) {
+      lux = si1133_sensor.value(SI1133_SENSOR_TYPE_LUX);
       temp = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_TEMP);
       pressure = bmp_280_sensor.value(BMP_280_SENSOR_TYPE_PRESS);
 
       //  bmp_get_temperature_pressure(&temp, &pressure);
 
-      LOG_INFO("Time: %6lu  Temp: %2"PRId32".%03"PRId32"  Pressure: %4"PRIu32".%03"PRIu32"  BLeft:%d\n",
-               (unsigned long)clock_time(), (temp / 1000), (temp % 1000),
+      LOG_INFO("Time: %6lu  Light: %d.%03d Temp: %2"PRId32".%03"PRId32"  Pressure: %4"PRIu32".%03"PRIu32"  BLeft:%d\n",
+               (unsigned long)clock_time(),
+               (int) (lux / 1000), (int) (lux % 1000),
+               (temp / 1000), (temp % 1000),
                (pressure / 1000), (pressure % 1000),
                button_left_sensor.value(0));
 
