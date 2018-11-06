@@ -148,6 +148,11 @@ process_receive(void)
 void dbg_init(void)
 {
   UARTDRV_Init_t uartInit = USART_INIT;
+
+#ifdef SERIAL_BAUDRATE
+  init.baudrate = SERIAL_BAUDRATE;
+#endif /* SERIAL_BAUDRATE */
+
   sReceiveFifo.mHead = 0;
   sReceiveFifo.mTail = 0;
 
