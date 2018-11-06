@@ -34,9 +34,10 @@
 #include "sensors.h"
 #include "bmp-280-sensor.h"
 #include "si1133-sensor.h"
+#include "rgbleds.h"
 
 static struct shell_command_set_t efr32_commands;
-
+extern int autoblink;
 void
 efr_cmds_init(void)
 {
@@ -81,8 +82,47 @@ PT_THREAD(cmd_sensor(struct pt *pt, shell_output_func output, char *args))
   PT_END(pt);
 }
 
-static const struct shell_command_t efr32_shell_commands[] = {
+static
+PT_THREAD(cmd_rgbleds(struct pt *pt, shell_output_func output, char *args))
+{
+  char *ledstr;
+  char *next_args;
+  int led;
+  int color;
+
+  PT_BEGIN(pt);
+
+  SHELL_ARGS_INIT(args, next_args);
+
+  /* Get first arg  */
+  SHELL_ARGS_NEXT(ledstr, next_args);
+  /* Get second arg  */
+  SHELL_ARGS_NEXT(args, next_args);
+
+  /* no args... just print status */
+  if(args == NULL || ledstr == NULL|| !strcmp(args, "help")) {
+    SHELL_OUTPUT(output, "Usage: rgbleds [led color]\n");
+  } else if(shell_dectoi(ledstr, &led) == ledstr) {
+    SHELL_OUTPUT(output, "Please specify led number.\n");
+  } else if(shell_dectoi(args, &color) == args) {
+    SHELL_OUTPUT(output, "Please specify color (number).\n");
+  } else {
+    rgbleds_enable(led & 0xf);
+    SHELL_OUTPUT(output, "Setting LEDs %d to 0x%x.\n", led, color);
+    rgbleds_setcolor((color >> 16 & 0xff) << 8,
+                     (color >> 8 & 0xff) << 8,
+                     (color & 0xff) << 8);
+    autoblink = led == 0;
+  }
+
+  PT_END(pt);
+}
+
+
+const struct shell_command_t efr32_shell_commands[] = {
   { "sensor",           cmd_sensor,           "'> sensor <name>': reads out data from sensors (light, temp, pressure)" },
+
+  { "rgbleds",           cmd_rgbleds,           "'> rgbleds [on/off led color]': sets color of RGB leds (no args turns on autoblink)" },
   { NULL, NULL, NULL }
 };
 

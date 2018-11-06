@@ -41,6 +41,7 @@
 #define LOG_LEVEL LOG_LEVEL_INFO
 /*---------------------------------------------------------------------------*/
 void efr_cmds_init(void);
+int autoblink = 1;
 
 PROCESS(test_process, "BMP280 tester");
 AUTOSTART_PROCESSES(&test_process);
@@ -78,11 +79,13 @@ PROCESS_THREAD(test_process, ev, data)
                  button_left_sensor.value(0));
         ctr = 0;
       }
-      /* Blink a bit with the RGB leds */
-      rgbleds_enable(enable++ & 0xf);
-      rgbleds_setcolor((clock_time() >> 0) & 0xffff,
-                       (clock_time() >> 2) & 0xffff,
-                       (clock_time() >> 4) & 0xffff);
+      if(autoblink) {
+        /* Blink a bit with the RGB leds */
+        rgbleds_enable(enable++ & 0xf);
+        rgbleds_setcolor((clock_time() >> 0) & 0xffff,
+                         (clock_time() >> 2) & 0xffff,
+                         (clock_time() >> 4) & 0xffff);
+      }
 
       etimer_restart(&periodic_timer);
     }
