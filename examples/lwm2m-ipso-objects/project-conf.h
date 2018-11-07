@@ -30,6 +30,9 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
+/* Disable deep sleep to make all RAM available on Firefly */
+#define LPM_CONF_MAX_PM       1
+
 #ifdef BOARD_STRING
 #define LWM2M_DEVICE_MODEL_NUMBER BOARD_STRING
 #elif defined(CONTIKI_TARGET_WISMOTE)
