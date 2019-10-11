@@ -32,6 +32,8 @@ before_install:
     fi
   # Build Cooja conditionally
   - if [ ${BUILD_COOJA:-false} = true ] ; then
+      # Install ant and build Cooja here. Consider moving inside docker in the future.
+      sudo apt-get -y install ant
       ant -q -f $CNG_HOST_PATH/tools/cooja/build.xml jar ;
     fi
 
