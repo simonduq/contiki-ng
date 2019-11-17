@@ -1,4 +1,4 @@
-FROM i386/ubuntu:18.04
+FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -6,8 +6,9 @@ ENV DEBIAN_FRONTEND noninteractive
 USER root
 
 # Tools
-RUN apt-get -qq update && \
-    apt-get -qq -y --no-install-recommends install gnupg > /dev/null
+RUN apt-get -qq update \
+    && apt-get -qq -y --no-install-recommends install apt-utils gnupg > /dev/null \
+    && apt-get -qq clean
 
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
   echo "deb http://download.mono-project.com/repo/ubuntu bionic main" | tee /etc/apt/sources.list.d/mono-xamarin.list && \
@@ -22,7 +23,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E03280
     gtk-sharp2 \
     iputils-tracepath \
     iputils-ping \
-    libcanberra-gtk-module:i386 \
+    libcanberra-gtk-module \
     libgtk2.0-0 \
     mono-complete \
     mosquitto \
@@ -36,6 +37,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E03280
     sudo \
     screen \
     srecord \
+    software-properties-common \
     uml-utilities \
     unzip \
     valgrind \
@@ -50,10 +52,10 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E03280
 RUN npm -q install coap-cli@0.5.1 -g
 
 # Install ARM toolchain
-RUN wget -nv https://launchpad.net/gcc-arm-embedded/5.0/5-2015-q4-major/+download/gcc-arm-none-eabi-5_2-2015q4-20151219-linux.tar.bz2 && \
-  tar xjf gcc-arm-none-eabi-5_2-2015q4-20151219-linux.tar.bz2 -C /tmp/ && \
-  cp -f -r /tmp/gcc-arm-none-eabi-5_2-2015q4/* /usr/local/ && \
-  rm -rf /tmp/gcc-arm-none-eabi-* gcc-arm-none-eabi-*-linux.tar.bz2
+RUN add-apt-repository ppa:team-gcc-arm-embedded/ppa
+RUN apt-get update \
+    && apt-get -y install 'gcc-arm-embedded=7-2018q2-1~bionic*' \
+    && apt-get -qq clean
 
 # Install msp430 toolchain
 RUN wget -nv http://simonduq.github.io/resources/mspgcc-4.7.2-compiled.tar.bz2 && \
@@ -114,8 +116,8 @@ WORKDIR                 ${HOME}
 RUN echo "#!/bin/bash\nant -Dbasedir=${COOJA} -f ${COOJA}/build.xml run" > ${HOME}/cooja && \
   chmod +x ${HOME}/cooja
 
-# Make sure we're using Java 8 for Cooja
-RUN sudo update-java-alternatives --set /usr/lib/jvm/java-1.8.0-openjdk-i386
+# Set java 11 for Cooja
+RUN sudo update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
 
 # Download, build and install Renode
 RUN git clone --quiet https://github.com/renode/renode.git \
