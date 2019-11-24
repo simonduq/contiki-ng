@@ -101,6 +101,9 @@ RUN export uid=1000 gid=1000 && \
     chown ${uid}:${gid} -R /home/user && \
     usermod -aG dialout user
 
+# Set java 11 for Cooja
+RUN update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
+
 # Set user for what comes next
 USER user
 
@@ -115,9 +118,6 @@ WORKDIR                 ${HOME}
 # Create Cooja shortcut
 RUN echo "#!/bin/bash\nant -Dbasedir=${COOJA} -f ${COOJA}/build.xml run" > ${HOME}/cooja && \
   chmod +x ${HOME}/cooja
-
-# Set java 11 for Cooja
-RUN sudo update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
 
 # By default, we use a Docker bind mount to share the repo with the host,
 # with Docker run option:
