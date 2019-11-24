@@ -13,7 +13,6 @@ RUN apt-get -qq update \
 RUN apt-get update && apt-get -y --no-install-recommends install \
     ant \
     build-essential \
-    default-jdk \
     doxygen \
     gdb \
     git \
@@ -27,7 +26,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     mosquitto-clients \
     net-tools \
     npm \
-    openjdk-8-jdk \
+    openjdk-11-jdk \
     python-pip \
     python-serial \
     rlwrap \
