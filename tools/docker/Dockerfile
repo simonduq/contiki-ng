@@ -119,13 +119,6 @@ RUN echo "#!/bin/bash\nant -Dbasedir=${COOJA} -f ${COOJA}/build.xml run" > ${HOM
 # Set java 11 for Cooja
 RUN sudo update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
 
-# Download, build and install Renode
-RUN git clone --quiet https://github.com/renode/renode.git \
-  && cd ${HOME}/renode \
-  && git checkout v1.3 \
-  && ./build.sh
-ENV PATH="${HOME}/renode:${PATH}"
-
 # By default, we use a Docker bind mount to share the repo with the host,
 # with Docker run option:
 # -v <HOST_CONTIKI_NG_ABS_PATH>:/home/user/contiki-ng
