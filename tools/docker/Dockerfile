@@ -16,12 +16,8 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     doxygen \
     gdb \
     git \
-    gtk-sharp2 \
     iputils-tracepath \
     iputils-ping \
-    libcanberra-gtk-module \
-    libgtk2.0-0 \
-    mono-complete \
     mosquitto \
     mosquitto-clients \
     net-tools \
@@ -31,10 +27,8 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
     python-serial \
     rlwrap \
     sudo \
-    screen \
     srecord \
     software-properties-common \
-    uml-utilities \
     unzip \
     valgrind \
     wget \
