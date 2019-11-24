@@ -10,10 +10,7 @@ RUN apt-get -qq update \
     && apt-get -qq -y --no-install-recommends install apt-utils gnupg > /dev/null \
     && apt-get -qq clean
 
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
-  echo "deb http://download.mono-project.com/repo/ubuntu bionic main" | tee /etc/apt/sources.list.d/mono-xamarin.list && \
-  apt-get -qq update && \
-  apt-get -qq -y --no-install-recommends install \
+RUN apt-get update && apt-get -y --no-install-recommends install \
     ant \
     build-essential \
     default-jdk \
@@ -45,7 +42,6 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E03280
     smitools \
     snmp \
     snmp-mibs-downloader \
-    > /dev/null \
   && apt-get -qq clean
 
 # Install coap-cli
