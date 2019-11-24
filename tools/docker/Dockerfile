@@ -97,7 +97,7 @@ RUN update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
 USER user
 
 # Environment variables
-ENV JAVA_HOME           /usr/lib/jvm/default-java
+ENV JAVA_HOME           /usr/lib/jvm/java-11-openjdk-amd64
 ENV HOME                /home/user
 ENV CONTIKI_NG          ${HOME}/contiki-ng
 ENV COOJA               ${CONTIKI_NG}/tools/cooja
