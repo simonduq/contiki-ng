@@ -41,10 +41,10 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
 RUN npm -q install coap-cli@0.5.1 -g
 
 # Install ARM toolchain
-RUN add-apt-repository ppa:team-gcc-arm-embedded/ppa
-RUN apt-get update \
-    && apt-get -y install 'gcc-arm-embedded=7-2018q2-1~bionic*' \
-    && apt-get -qq clean
+RUN wget -nv https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/RC2.1/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 && \
+  tar xjf gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -C /tmp/ && \
+  cp -f -r /tmp/gcc-arm-none-eabi-9-2019-q4-major/* /usr/local/ && \
+  rm -rf /tmp/gcc-arm-none-eabi-* gcc-arm-none-eabi-*-linux.tar.bz2
 
 # Install msp430 toolchain
 RUN wget -nv http://simonduq.github.io/resources/mspgcc-4.7.2-compiled.tar.bz2 && \
