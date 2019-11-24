@@ -10,52 +10,41 @@ RUN apt-get -qq update \
     && apt-get -qq -y --no-install-recommends install apt-utils gnupg > /dev/null \
     && apt-get -qq clean
 
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
-  echo "deb http://download.mono-project.com/repo/ubuntu bionic main" | tee /etc/apt/sources.list.d/mono-xamarin.list && \
-  apt-get -qq update && \
-  apt-get -qq -y --no-install-recommends install \
+RUN apt-get update && apt-get -y --no-install-recommends install \
     ant \
     build-essential \
-    default-jdk \
     doxygen \
     gdb \
     git \
-    gtk-sharp2 \
     iputils-tracepath \
     iputils-ping \
-    libcanberra-gtk-module \
-    libgtk2.0-0 \
-    mono-complete \
     mosquitto \
     mosquitto-clients \
     net-tools \
     npm \
-    openjdk-8-jdk \
+    openjdk-11-jdk \
     python-pip \
     python-serial \
     rlwrap \
     sudo \
-    screen \
     srecord \
     software-properties-common \
-    uml-utilities \
     unzip \
     valgrind \
     wget \
     smitools \
     snmp \
     snmp-mibs-downloader \
-    > /dev/null \
   && apt-get -qq clean
 
 # Install coap-cli
 RUN npm -q install coap-cli@0.5.1 -g
 
 # Install ARM toolchain
-RUN add-apt-repository ppa:team-gcc-arm-embedded/ppa
-RUN apt-get update \
-    && apt-get -y install 'gcc-arm-embedded=7-2018q2-1~bionic*' \
-    && apt-get -qq clean
+RUN wget -nv https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/RC2.1/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 && \
+  tar xjf gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -C /tmp/ && \
+  cp -f -r /tmp/gcc-arm-none-eabi-9-2019-q4-major/* /usr/local/ && \
+  rm -rf /tmp/gcc-arm-none-eabi-* gcc-arm-none-eabi-*-linux.tar.bz2
 
 # Install msp430 toolchain
 RUN wget -nv http://simonduq.github.io/resources/mspgcc-4.7.2-compiled.tar.bz2 && \
@@ -101,11 +90,19 @@ RUN export uid=1000 gid=1000 && \
     chown ${uid}:${gid} -R /home/user && \
     usermod -aG dialout user
 
+# Set java 11 for Cooja
+RUN update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
+
+# Install 32-bit support for the msp430 and jn516x toolchains
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends libc6:i386 zlib1g:i386
+
 # Set user for what comes next
 USER user
 
 # Environment variables
-ENV JAVA_HOME           /usr/lib/jvm/default-java
+ENV JAVA_HOME           /usr/lib/jvm/java-11-openjdk-amd64
 ENV HOME                /home/user
 ENV CONTIKI_NG          ${HOME}/contiki-ng
 ENV COOJA               ${CONTIKI_NG}/tools/cooja
@@ -115,16 +112,6 @@ WORKDIR                 ${HOME}
 # Create Cooja shortcut
 RUN echo "#!/bin/bash\nant -Dbasedir=${COOJA} -f ${COOJA}/build.xml run" > ${HOME}/cooja && \
   chmod +x ${HOME}/cooja
-
-# Set java 11 for Cooja
-RUN sudo update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
-
-# Download, build and install Renode
-RUN git clone --quiet https://github.com/renode/renode.git \
-  && cd ${HOME}/renode \
-  && git checkout v1.3 \
-  && ./build.sh
-ENV PATH="${HOME}/renode:${PATH}"
 
 # By default, we use a Docker bind mount to share the repo with the host,
 # with Docker run option:
