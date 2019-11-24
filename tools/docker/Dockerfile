@@ -95,8 +95,8 @@ RUN update-java-alternatives --set /usr/lib/jvm/java-1.11.0-openjdk-amd64
 
 # Install 32-bit support for the msp430 and jn516x toolchains
 RUN dpkg --add-architecture i386 && \
-    apt update && \
-    apt install -y --no-install-recommends libc6:i386 zlib1g:i386
+    apt-get update && \
+    apt-get install -y --no-install-recommends libc6:i386 zlib1g:i386
 
 # Set user for what comes next
 USER user
