@@ -104,7 +104,13 @@ jobs:
       run: |
         # Set permissions for Docker mount
         sudo chown -R 1000:1000 .
+        # Function to run a docker command
+        docker-run() { docker run --cap-add=NET_ADMIN --device=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=0 $DOCKER_ARGS -v `pwd`:/home/user/contiki-ng $DOCKER_IMG bash --login -c "$1"; }
         # Run test
-        docker run --cap-add=NET_ADMIN --device=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=0 $DOCKER_ARGS -v `pwd`:/home/user/contiki-ng $DOCKER_IMG bash --login -c "make -C tests/??-tun-rpl-br;"
+        #docker-run "make -C tests/??-tun-rpl-br;"
+        # Run each individual test in its own container
+        for test in tests/17-tun-rpl-br/??-*.sh; do docker-run "make -C tests/17-tun-rpl-br `basename $test .sh`.testlog"; done
+        # Build summary file
+        docker-run "make -C tests/17-tun-rpl-br summary"
         # Check outcome of the test
         ./tests/check-test.sh `pwd`/tests/??-tun-rpl-br
