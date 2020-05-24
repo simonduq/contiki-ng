@@ -105,6 +105,6 @@ jobs:
         # Set permissions for Docker mount
         sudo chown -R 1000:1000 .
         # Run test
-        docker run --cap-add=NET_ADMIN --device=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=0 $DOCKER_ARGS -v `pwd`:/home/user/contiki-ng $DOCKER_IMG bash --login -c "make -C tests/??-${{ matrix.test }};"
+        docker run --cap-add=NET_ADMIN --device=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=0 $DOCKER_ARGS -v `pwd`:/home/user/contiki-ng $DOCKER_IMG bash --login -c "make -C tests/??-tun-rpl-br;"
         # Check outcome of the test
-        ./tests/check-test.sh `pwd`/tests/??-${{ matrix.test }}
+        ./tests/check-test.sh `pwd`/tests/??-tun-rpl-br
