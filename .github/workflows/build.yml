@@ -84,7 +84,7 @@ jobs:
         echo docker push $DOCKER_IMG
         echo docker tag $DOCKER_IMG $DOCKER_BASE_IMG:$MERGE_BRANCH_REF
         echo docker push $DOCKER_BASE_IMG:$MERGE_BRANCH_REF
-        if [ $MERGE_BRANCH_REF == develop ] then
+        if [ $MERGE_BRANCH_REF == develop ]; then
           # When develop is updated, also push docker image with tag 'latest'
           echo docker tag $DOCKER_IMG $DOCKER_BASE_IMG:latest
           echo docker push $DOCKER_BASE_IMG:latest
